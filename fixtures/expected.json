@@ -1,0 +1,1174 @@
+{
+  "_about": "Test oracle for Phase 2. Every value was derived from the sources using the rules in `rules`, then spot-checked by hand (see docs/fixture.md). The analyzer must reproduce all of it.",
+  "rules": {
+    "loc": "Physical lines containing at least one non-whitespace character after removing comments (line, block, Javadoc). String contents are kept as code. Test files and non-Java files excluded.",
+    "fan_out": "Distinct OTHER project classes that class references: name appears as an identifier in code (comments and string literals ignored) AND is same-package or imported by FQN. Self-references ignored.",
+    "fan_in": "Distinct other project classes whose fan-out includes this class.",
+    "complexity": "Approximate cyclomatic: number of method/constructor bodies (abstract and interface methods contribute 0) plus decision points: if, else-if (counted as if), for, while, case, catch, ternary ?, &&, ||. `else` and `default` do not count.",
+    "complexity_band": "low: <=15, medium: 16-50, high: >50",
+    "god_class": "loc >= 400 AND complexity > 50",
+    "highly_coupled": "fan_in >= 5 AND fan_out >= 8",
+    "db_jdbc": "One instance per occurrence in code of DriverManager.getConnection( | .prepareStatement( | .createStatement(",
+    "db_entity_engine": "One instance per occurrence in code of EntityQuery.use( | delegator.makeValue( | delegator.create(",
+    "legacy_marker": "Import of javax.<family> except JDK packages javax.sql and javax.xml; jakarta.* imports are recorded as namespace=jakarta (migrated). A module with both is namespace_mix=true.",
+    "outdated_dependency": "declared_major < min_current_major. min_current_major is a conservative lower bound for the fixture; the analyzer's bundled table must be >= it for these coordinates. javax.* to jakarta.* renames are treated as major upgrades.",
+    "module": "Java package directly under com.example.legacy. Test presence = at least one class under src/test/java in the matching package.",
+    "service_mapping": "engine=java: implementation is `<fqn>#<method>` and is analyzed. engine=groovy: implementation is the script location and is NOT analyzed.",
+    "scope": "Only src/main/java is analyzed for metrics; src/test, src/main/groovy and resources are inventoried only."
+  },
+  "totals": {
+    "main_java_classes": 18,
+    "modules": 4,
+    "main_java_loc": 1227,
+    "test_classes": 3
+  },
+  "modules": {
+    "billing": {
+      "classes": [
+        "BillingException",
+        "InvoiceItem",
+        "InvoiceService",
+        "PaymentCalculator"
+      ],
+      "class_count": 4,
+      "loc": 106,
+      "depends_on_modules": {
+        "common": 1,
+        "order": 1
+      },
+      "module_fan_out": 2,
+      "module_fan_in": 1,
+      "has_tests": true,
+      "test_classes": [
+        "InvoiceServiceTest",
+        "PaymentCalculatorTest"
+      ],
+      "javax_imports": 0,
+      "jakarta_imports": 0,
+      "namespace_mix": false
+    },
+    "common": {
+      "classes": [
+        "Delegator",
+        "EntityQuery",
+        "GenericValue",
+        "StringUtil"
+      ],
+      "class_count": 4,
+      "loc": 82,
+      "depends_on_modules": {},
+      "module_fan_out": 0,
+      "module_fan_in": 3,
+      "has_tests": false,
+      "test_classes": [],
+      "javax_imports": 0,
+      "jakarta_imports": 0,
+      "namespace_mix": false
+    },
+    "order": {
+      "classes": [
+        "Order",
+        "OrderItem",
+        "OrderReadHelper",
+        "OrderServices",
+        "OrderStatus",
+        "ShoppingCart"
+      ],
+      "class_count": 6,
+      "loc": 953,
+      "depends_on_modules": {
+        "billing": 3,
+        "common": 9,
+        "party": 3
+      },
+      "module_fan_out": 3,
+      "module_fan_in": 2,
+      "has_tests": false,
+      "test_classes": [],
+      "javax_imports": 1,
+      "jakarta_imports": 0,
+      "namespace_mix": false
+    },
+    "party": {
+      "classes": [
+        "Party",
+        "PartyController",
+        "PartyLegacyHelper",
+        "PartyService"
+      ],
+      "class_count": 4,
+      "loc": 86,
+      "depends_on_modules": {
+        "common": 4,
+        "order": 2
+      },
+      "module_fan_out": 2,
+      "module_fan_in": 1,
+      "has_tests": true,
+      "test_classes": [
+        "PartyServiceTest"
+      ],
+      "javax_imports": 1,
+      "jakarta_imports": 1,
+      "namespace_mix": true
+    }
+  },
+  "classes": {
+    "BillingException": {
+      "file": "src/main/java/com/example/legacy/billing/BillingException.java",
+      "module": "billing",
+      "loc": 6,
+      "fan_in": 1,
+      "fan_out": 0,
+      "complexity": 1,
+      "complexity_band": "low",
+      "depends_on": [],
+      "depended_on_by": [
+        "InvoiceService"
+      ]
+    },
+    "InvoiceItem": {
+      "file": "src/main/java/com/example/legacy/billing/InvoiceItem.java",
+      "module": "billing",
+      "loc": 20,
+      "fan_in": 3,
+      "fan_out": 0,
+      "complexity": 4,
+      "complexity_band": "low",
+      "depends_on": [],
+      "depended_on_by": [
+        "InvoiceService",
+        "OrderServices",
+        "PaymentCalculator"
+      ]
+    },
+    "InvoiceService": {
+      "file": "src/main/java/com/example/legacy/billing/InvoiceService.java",
+      "module": "billing",
+      "loc": 62,
+      "fan_in": 2,
+      "fan_out": 5,
+      "complexity": 10,
+      "complexity_band": "low",
+      "depends_on": [
+        "BillingException",
+        "InvoiceItem",
+        "OrderReadHelper",
+        "PaymentCalculator",
+        "StringUtil"
+      ],
+      "depended_on_by": [
+        "OrderReadHelper",
+        "OrderServices"
+      ]
+    },
+    "PaymentCalculator": {
+      "file": "src/main/java/com/example/legacy/billing/PaymentCalculator.java",
+      "module": "billing",
+      "loc": 18,
+      "fan_in": 1,
+      "fan_out": 1,
+      "complexity": 4,
+      "complexity_band": "low",
+      "depends_on": [
+        "InvoiceItem"
+      ],
+      "depended_on_by": [
+        "InvoiceService"
+      ]
+    },
+    "Delegator": {
+      "file": "src/main/java/com/example/legacy/common/Delegator.java",
+      "module": "common",
+      "loc": 9,
+      "fan_in": 4,
+      "fan_out": 1,
+      "complexity": 0,
+      "complexity_band": "low",
+      "depends_on": [
+        "GenericValue"
+      ],
+      "depended_on_by": [
+        "EntityQuery",
+        "OrderReadHelper",
+        "OrderServices",
+        "PartyService"
+      ]
+    },
+    "EntityQuery": {
+      "file": "src/main/java/com/example/legacy/common/EntityQuery.java",
+      "module": "common",
+      "loc": 29,
+      "fan_in": 3,
+      "fan_out": 2,
+      "complexity": 6,
+      "complexity_band": "low",
+      "depends_on": [
+        "Delegator",
+        "GenericValue"
+      ],
+      "depended_on_by": [
+        "OrderReadHelper",
+        "OrderServices",
+        "PartyService"
+      ]
+    },
+    "GenericValue": {
+      "file": "src/main/java/com/example/legacy/common/GenericValue.java",
+      "module": "common",
+      "loc": 23,
+      "fan_in": 5,
+      "fan_out": 0,
+      "complexity": 6,
+      "complexity_band": "low",
+      "depends_on": [],
+      "depended_on_by": [
+        "Delegator",
+        "EntityQuery",
+        "OrderReadHelper",
+        "OrderServices",
+        "PartyService"
+      ]
+    },
+    "StringUtil": {
+      "file": "src/main/java/com/example/legacy/common/StringUtil.java",
+      "module": "common",
+      "loc": 21,
+      "fan_in": 5,
+      "fan_out": 0,
+      "complexity": 8,
+      "complexity_band": "low",
+      "depends_on": [],
+      "depended_on_by": [
+        "InvoiceService",
+        "OrderReadHelper",
+        "OrderServices",
+        "PartyService",
+        "ShoppingCart"
+      ]
+    },
+    "Order": {
+      "file": "src/main/java/com/example/legacy/order/Order.java",
+      "module": "order",
+      "loc": 28,
+      "fan_in": 2,
+      "fan_out": 2,
+      "complexity": 6,
+      "complexity_band": "low",
+      "depends_on": [
+        "OrderItem",
+        "OrderStatus"
+      ],
+      "depended_on_by": [
+        "OrderReadHelper",
+        "OrderServices"
+      ]
+    },
+    "OrderItem": {
+      "file": "src/main/java/com/example/legacy/order/OrderItem.java",
+      "module": "order",
+      "loc": 23,
+      "fan_in": 4,
+      "fan_out": 0,
+      "complexity": 5,
+      "complexity_band": "low",
+      "depends_on": [],
+      "depended_on_by": [
+        "Order",
+        "OrderReadHelper",
+        "OrderServices",
+        "ShoppingCart"
+      ]
+    },
+    "OrderReadHelper": {
+      "file": "src/main/java/com/example/legacy/order/OrderReadHelper.java",
+      "module": "order",
+      "loc": 69,
+      "fan_in": 5,
+      "fan_out": 10,
+      "complexity": 16,
+      "complexity_band": "medium",
+      "depends_on": [
+        "Delegator",
+        "EntityQuery",
+        "GenericValue",
+        "InvoiceService",
+        "Order",
+        "OrderItem",
+        "OrderStatus",
+        "PartyService",
+        "ShoppingCart",
+        "StringUtil"
+      ],
+      "depended_on_by": [
+        "InvoiceService",
+        "OrderServices",
+        "PartyController",
+        "PartyService",
+        "ShoppingCart"
+      ]
+    },
+    "OrderServices": {
+      "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+      "module": "order",
+      "loc": 793,
+      "fan_in": 0,
+      "fan_out": 13,
+      "complexity": 229,
+      "complexity_band": "high",
+      "depends_on": [
+        "Delegator",
+        "EntityQuery",
+        "GenericValue",
+        "InvoiceItem",
+        "InvoiceService",
+        "Order",
+        "OrderItem",
+        "OrderReadHelper",
+        "OrderStatus",
+        "Party",
+        "PartyService",
+        "ShoppingCart",
+        "StringUtil"
+      ],
+      "depended_on_by": []
+    },
+    "OrderStatus": {
+      "file": "src/main/java/com/example/legacy/order/OrderStatus.java",
+      "module": "order",
+      "loc": 4,
+      "fan_in": 3,
+      "fan_out": 0,
+      "complexity": 0,
+      "complexity_band": "low",
+      "depends_on": [],
+      "depended_on_by": [
+        "Order",
+        "OrderReadHelper",
+        "OrderServices"
+      ]
+    },
+    "ShoppingCart": {
+      "file": "src/main/java/com/example/legacy/order/ShoppingCart.java",
+      "module": "order",
+      "loc": 36,
+      "fan_in": 2,
+      "fan_out": 3,
+      "complexity": 10,
+      "complexity_band": "low",
+      "depends_on": [
+        "OrderItem",
+        "OrderReadHelper",
+        "StringUtil"
+      ],
+      "depended_on_by": [
+        "OrderReadHelper",
+        "OrderServices"
+      ]
+    },
+    "Party": {
+      "file": "src/main/java/com/example/legacy/party/Party.java",
+      "module": "party",
+      "loc": 15,
+      "fan_in": 4,
+      "fan_out": 0,
+      "complexity": 3,
+      "complexity_band": "low",
+      "depends_on": [],
+      "depended_on_by": [
+        "OrderServices",
+        "PartyController",
+        "PartyLegacyHelper",
+        "PartyService"
+      ]
+    },
+    "PartyController": {
+      "file": "src/main/java/com/example/legacy/party/PartyController.java",
+      "module": "party",
+      "loc": 21,
+      "fan_in": 0,
+      "fan_out": 3,
+      "complexity": 3,
+      "complexity_band": "low",
+      "depends_on": [
+        "OrderReadHelper",
+        "Party",
+        "PartyService"
+      ],
+      "depended_on_by": []
+    },
+    "PartyLegacyHelper": {
+      "file": "src/main/java/com/example/legacy/party/PartyLegacyHelper.java",
+      "module": "party",
+      "loc": 14,
+      "fan_in": 0,
+      "fan_out": 1,
+      "complexity": 3,
+      "complexity_band": "low",
+      "depends_on": [
+        "Party"
+      ],
+      "depended_on_by": []
+    },
+    "PartyService": {
+      "file": "src/main/java/com/example/legacy/party/PartyService.java",
+      "module": "party",
+      "loc": 36,
+      "fan_in": 3,
+      "fan_out": 6,
+      "complexity": 7,
+      "complexity_band": "low",
+      "depends_on": [
+        "Delegator",
+        "EntityQuery",
+        "GenericValue",
+        "OrderReadHelper",
+        "Party",
+        "StringUtil"
+      ],
+      "depended_on_by": [
+        "OrderReadHelper",
+        "OrderServices",
+        "PartyController"
+      ]
+    }
+  },
+  "deliberate_smells": [
+    {
+      "smell": "god_class",
+      "why": "OrderServices holds every order workflow in one ~800-line class with 16 near-identical workflow methods. Stands in for OFBiz OrderServices.java (7,516 LOC). Also in a module with no tests.",
+      "subjects": [
+        "OrderServices"
+      ]
+    },
+    {
+      "smell": "highly_coupled_service",
+      "why": "OrderReadHelper is used by party, billing and order (fan-in) and itself reaches into party and billing (fan-out), creating module cycles order<->party and order<->billing. Stands in for OFBiz OrderReadHelper/ShoppingCart-style hubs.",
+      "subjects": [
+        "OrderReadHelper"
+      ]
+    },
+    {
+      "smell": "db_coupling_jdbc",
+      "why": "Raw Connection/PreparedStatement and SQL strings inside billing business logic. Stands in for hand-written JDBC in OFBiz helpers and pre-entity-engine code.",
+      "subjects": [
+        "InvoiceService"
+      ]
+    },
+    {
+      "smell": "db_coupling_entity_engine",
+      "why": "Business logic calls EntityQuery/delegator directly instead of through a repository layer. This is the dominant OFBiz pattern (hundreds of EntityQuery calls in applications/order).",
+      "subjects": [
+        "OrderReadHelper",
+        "OrderServices",
+        "PartyService"
+      ]
+    },
+    {
+      "smell": "no_tests",
+      "why": "order (the riskiest module) and common have no tests. Stands in for OFBiz order/product/party/accounting having zero unit tests.",
+      "subjects": [
+        "common",
+        "order"
+      ]
+    },
+    {
+      "smell": "namespace_mix",
+      "why": "party has PartyController on jakarta.servlet and PartyLegacyHelper on javax.servlet, mirroring OFBiz's mid-migration (139 javax vs 272 jakarta files).",
+      "subjects": [
+        "party"
+      ]
+    },
+    {
+      "smell": "legacy_ejb",
+      "why": "javax.ejb.Stateless import marks EJB-era design.",
+      "subjects": [
+        "OrderServices"
+      ]
+    },
+    {
+      "smell": "logic_outside_java",
+      "why": "Service definitions and a Groovy script carry behavior the Java analyzer cannot see; must be counted and reported as not analyzed.",
+      "subjects": [
+        "services.xml",
+        "CheckOrderFraud.groovy"
+      ]
+    }
+  ],
+  "traps_must_not_count": [
+    {
+      "where": "PaymentCalculator.java Javadoc and NOTE string literal",
+      "what": "mentions of EntityQuery.use( and prepareStatement( in a comment and a string must NOT produce db_coupling instances; the Javadoc mention of InvoiceService must NOT create a dependency edge"
+    },
+    {
+      "where": "InvoiceService.java",
+      "what": "import javax.sql.DataSource is a JDK package, NOT a legacy marker"
+    },
+    {
+      "where": "StringUtil / GenericValue",
+      "what": "high fan-in but zero fan-out, so NOT highly coupled"
+    },
+    {
+      "where": "OrderServices",
+      "what": "fan-out 13 but fan-in 0, so NOT highly coupled (only god class)"
+    },
+    {
+      "where": "Delegator.java / EntityQuery.java stubs",
+      "what": "declaring or implementing create/findOne/use is not a db_coupling instance"
+    }
+  ],
+  "db_coupling": {
+    "total": 60,
+    "jdbc": 5,
+    "entity_engine": 55,
+    "instances": [
+      {
+        "type": "jdbc",
+        "file": "src/main/java/com/example/legacy/billing/InvoiceService.java",
+        "line": 29,
+        "module": "billing",
+        "match": "DriverManager.getConnection(",
+        "class": "InvoiceService"
+      },
+      {
+        "type": "jdbc",
+        "file": "src/main/java/com/example/legacy/billing/InvoiceService.java",
+        "line": 30,
+        "module": "billing",
+        "match": ".prepareStatement(",
+        "class": "InvoiceService"
+      },
+      {
+        "type": "jdbc",
+        "file": "src/main/java/com/example/legacy/billing/InvoiceService.java",
+        "line": 36,
+        "module": "billing",
+        "match": ".prepareStatement(",
+        "class": "InvoiceService"
+      },
+      {
+        "type": "jdbc",
+        "file": "src/main/java/com/example/legacy/billing/InvoiceService.java",
+        "line": 51,
+        "module": "billing",
+        "match": "DriverManager.getConnection(",
+        "class": "InvoiceService"
+      },
+      {
+        "type": "jdbc",
+        "file": "src/main/java/com/example/legacy/billing/InvoiceService.java",
+        "line": 52,
+        "module": "billing",
+        "match": ".prepareStatement(",
+        "class": "InvoiceService"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderReadHelper.java",
+        "line": 24,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderReadHelper"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderReadHelper.java",
+        "line": 34,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderReadHelper"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderReadHelper.java",
+        "line": 46,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderReadHelper"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderReadHelper.java",
+        "line": 52,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderReadHelper"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 42,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 44,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 47,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 90,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 92,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 95,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 138,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 140,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 143,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 186,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 188,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 191,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 234,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 236,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 239,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 282,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 284,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 287,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 330,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 332,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 335,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 378,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 380,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 383,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 426,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 428,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 431,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 474,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 476,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 479,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 522,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 524,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 527,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 570,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 572,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 575,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 618,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 620,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 623,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 666,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 668,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 671,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 714,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 716,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 719,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 762,
+        "module": "order",
+        "match": "EntityQuery.use(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 764,
+        "module": "order",
+        "match": "delegator.makeValue(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 767,
+        "module": "order",
+        "match": "delegator.create(",
+        "class": "OrderServices"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/party/PartyService.java",
+        "line": 23,
+        "module": "party",
+        "match": "EntityQuery.use(",
+        "class": "PartyService"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/party/PartyService.java",
+        "line": 31,
+        "module": "party",
+        "match": "delegator.makeValue(",
+        "class": "PartyService"
+      },
+      {
+        "type": "entity_engine",
+        "file": "src/main/java/com/example/legacy/party/PartyService.java",
+        "line": 34,
+        "module": "party",
+        "match": "delegator.create(",
+        "class": "PartyService"
+      }
+    ]
+  },
+  "legacy_markers": {
+    "instances": [
+      {
+        "file": "src/main/java/com/example/legacy/order/OrderServices.java",
+        "line": 15,
+        "module": "order",
+        "namespace": "javax",
+        "family": "ejb",
+        "import": "javax.ejb.Stateless"
+      },
+      {
+        "file": "src/main/java/com/example/legacy/party/PartyController.java",
+        "line": 4,
+        "module": "party",
+        "namespace": "jakarta",
+        "family": "servlet",
+        "import": "jakarta.servlet.http.HttpServletRequest"
+      },
+      {
+        "file": "src/main/java/com/example/legacy/party/PartyLegacyHelper.java",
+        "line": 3,
+        "module": "party",
+        "namespace": "javax",
+        "family": "servlet",
+        "import": "javax.servlet.http.HttpServletRequest"
+      }
+    ]
+  },
+  "dependencies": {
+    "outdated_count": 8,
+    "not_outdated": [
+      "junit:junit",
+      "org.slf4j:slf4j-api"
+    ],
+    "items": [
+      {
+        "file": "pom.xml",
+        "coordinate": "org.springframework:spring-core",
+        "declared_version": "4.3.30.RELEASE",
+        "declared_major": 4,
+        "min_current_major": 6,
+        "outdated": true
+      },
+      {
+        "file": "pom.xml",
+        "coordinate": "org.apache.struts:struts2-core",
+        "declared_version": "2.3.37",
+        "declared_major": 2,
+        "min_current_major": 6,
+        "outdated": true
+      },
+      {
+        "file": "pom.xml",
+        "coordinate": "javax.servlet:javax.servlet-api",
+        "declared_version": "3.0.1",
+        "declared_major": 3,
+        "min_current_major": 6,
+        "outdated": true
+      },
+      {
+        "file": "pom.xml",
+        "coordinate": "mysql:mysql-connector-java",
+        "declared_version": "5.1.49",
+        "declared_major": 5,
+        "min_current_major": 8,
+        "outdated": true
+      },
+      {
+        "file": "pom.xml",
+        "coordinate": "org.slf4j:slf4j-api",
+        "declared_version": "2.0.16",
+        "declared_major": 2,
+        "min_current_major": 2,
+        "outdated": false
+      },
+      {
+        "file": "pom.xml",
+        "coordinate": "junit:junit",
+        "declared_version": "4.13.2",
+        "declared_major": 4,
+        "min_current_major": 4,
+        "outdated": false
+      },
+      {
+        "file": "gradle/libs.versions.toml",
+        "coordinate": "org.codehaus.groovy:groovy-all",
+        "declared_version": "2.4.21",
+        "declared_major": 2,
+        "min_current_major": 4,
+        "outdated": true
+      },
+      {
+        "file": "gradle/libs.versions.toml",
+        "coordinate": "org.apache.tomcat:tomcat-catalina",
+        "declared_version": "8.5.50",
+        "declared_major": 8,
+        "min_current_major": 10,
+        "outdated": true
+      },
+      {
+        "file": "gradle/libs.versions.toml",
+        "coordinate": "com.sun.mail:javax.mail",
+        "declared_version": "1.6.2",
+        "declared_major": 1,
+        "min_current_major": 2,
+        "outdated": true
+      },
+      {
+        "file": "gradle/libs.versions.toml",
+        "coordinate": "org.springframework:spring-web",
+        "declared_version": "4.3.30.RELEASE",
+        "declared_major": 4,
+        "min_current_major": 6,
+        "outdated": true
+      },
+      {
+        "file": "gradle/libs.versions.toml",
+        "coordinate": "org.slf4j:slf4j-api",
+        "declared_version": "2.0.16",
+        "declared_major": 2,
+        "min_current_major": 2,
+        "outdated": false
+      }
+    ]
+  },
+  "service_mappings": [
+    {
+      "service": "createOrder",
+      "engine": "java",
+      "implementation": "com.example.legacy.order.OrderServices#createOrder",
+      "analyzed": true
+    },
+    {
+      "service": "cancelOrder",
+      "engine": "java",
+      "implementation": "com.example.legacy.order.OrderServices#cancelOrder",
+      "analyzed": true
+    },
+    {
+      "service": "createInvoice",
+      "engine": "java",
+      "implementation": "com.example.legacy.billing.InvoiceService#createInvoice",
+      "analyzed": true
+    },
+    {
+      "service": "findParty",
+      "engine": "java",
+      "implementation": "com.example.legacy.party.PartyService#findParty",
+      "analyzed": true
+    },
+    {
+      "service": "checkOrderFraud",
+      "engine": "groovy",
+      "implementation": "component://legacy/src/main/groovy/com/example/legacy/order/CheckOrderFraud.groovy",
+      "analyzed": false
+    }
+  ],
+  "unanalyzed_files": {
+    "groovy_count": 1,
+    "groovy_files": [
+      "src/main/groovy/com/example/legacy/order/CheckOrderFraud.groovy"
+    ],
+    "service_xml_files": [
+      "src/main/resources/servicedef/services.xml"
+    ],
+    "report_status": "not_analyzed"
+  }
+}

@@ -1,0 +1,12 @@
+[versions]
+groovy = "2.4.21"
+tomcat = "8.5.50"
+javax-mail = "1.6.2"
+slf4j = "2.0.16"
+
+[libraries]
+groovy-all = { module = "org.codehaus.groovy:groovy-all", version.ref = "groovy" }
+tomcat-catalina = { module = "org.apache.tomcat:tomcat-catalina", version.ref = "tomcat" }
+javax-mail = { module = "com.sun.mail:javax.mail", version.ref = "javax-mail" }
+spring-web = { module = "org.springframework:spring-web", version = "4.3.30.RELEASE" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

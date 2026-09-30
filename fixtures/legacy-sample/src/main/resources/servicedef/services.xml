@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>Order, billing and party service definitions</description>
+
+    <service name="createOrder" engine="java"
+             location="com.example.legacy.order.OrderServices" invoke="createOrder" auth="true">
+        <description>Create an order header</description>
+        <attribute name="orderId" type="String" mode="IN"/>
+    </service>
+
+    <service name="cancelOrder" engine="java"
+             location="com.example.legacy.order.OrderServices" invoke="cancelOrder" auth="true">
+        <attribute name="orderId" type="String" mode="IN"/>
+    </service>
+
+    <service name="createInvoice" engine="java"
+             location="com.example.legacy.billing.InvoiceService" invoke="createInvoice" auth="true">
+        <attribute name="orderId" type="String" mode="IN"/>
+    </service>
+
+    <service name="findParty" engine="java"
+             location="com.example.legacy.party.PartyService" invoke="findParty" auth="false">
+        <attribute name="partyId" type="String" mode="IN"/>
+    </service>
+
+    <service name="checkOrderFraud" engine="groovy"
+             location="component://legacy/src/main/groovy/com/example/legacy/order/CheckOrderFraud.groovy"
+             invoke="" auth="true">
+        <attribute name="orderId" type="String" mode="IN"/>
+    </service>
+</services>

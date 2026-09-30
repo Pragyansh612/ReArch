@@ -8,7 +8,7 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`.
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Setup and target choice | Done — target confirmed, committed |
-| 1 | Fixture with known answers | Not started |
+| 1 | Fixture with known answers | Done — awaiting user review of expected.json; commit pending (user runs git) |
 | 2 | Analyzer | Not started |
 | 3 | Scoring and strategies | Not started |
 | 4 | Roadmap | Not started |
@@ -18,6 +18,13 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`.
 | 8 | Polish and deploy | Not started |
 
 ## Log
+
+### 2026-10-01 — Phase 1
+- Built `fixtures/legacy-sample/`: 18 main classes, 4 modules (order, billing, party, common), 3 test classes,
+  `services.xml` (5 services), 1 Groovy script, `pom.xml` and `gradle/libs.versions.toml` with outdated versions.
+- Wrote `fixtures/expected.json` (the Phase 2 oracle) and `docs/fixture.md` (each smell and its OFBiz counterpart).
+- Values derived by a throwaway script from written rules, then hand-checked. No analyzer code written.
+- User asked that Claude run no further git commands; user commits. (Claude had already run `git init`/one commit for Phase 0.)
 
 ### 2026-10-01 — Target confirmed
 - User confirmed OFBiz (order, product, party, accounting) as primary target; JPetStore kept as Maven smoke test.
@@ -38,7 +45,7 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`.
 - **Recommendation:** OFBiz bounded to order + product + party + accounting; JPetStore as a secondary smoke test.
 
 ## Open decisions
-- None.
+- Review `fixtures/expected.json` rules and thresholds before Phase 2.
 
 ## Known gaps / risks
 - OFBiz logic in XML services/Groovy is invisible to a Java-only analyzer.
