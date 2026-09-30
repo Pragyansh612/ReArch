@@ -60,4 +60,10 @@ order + product + party + accounting = 132 files, about 95k LOC.
 
 **Keep JPetStore as a secondary smoke-test target**: it runs the Maven path end to end in seconds.
 
-Decision status: recommendation only; awaiting user confirmation.
+## Decision (confirmed by user, 2026-10-01)
+
+- **Primary demo target:** Apache OFBiz, bounded to `applications/order`, `applications/product`,
+  `applications/party`, `applications/accounting` (pinned at commit `c572aa78`).
+- **Secondary / Maven smoke test:** mybatis/jpetstore-6 (commit `1ffdf1e`).
+- Accepted risks stay as listed above: XML/Groovy logic not analyzed, Gradle dependency parsing needed,
+  structural (not version-age) legacy evidence.

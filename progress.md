@@ -7,7 +7,7 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`.
 
 | Phase | Name | Status |
 |---|---|---|
-| 0 | Setup and target choice | Scaffold done and verified; awaiting target confirmation |
+| 0 | Setup and target choice | Done — target confirmed, committed |
 | 1 | Fixture with known answers | Not started |
 | 2 | Analyzer | Not started |
 | 3 | Scoring and strategies | Not started |
@@ -18,6 +18,11 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`.
 | 8 | Polish and deploy | Not started |
 
 ## Log
+
+### 2026-10-01 — Target confirmed
+- User confirmed OFBiz (order, product, party, accounting) as primary target; JPetStore kept as Maven smoke test.
+- Recorded in `docs/target.md`. Git initialised; initial commit "Phase 0: scaffold and target choice".
+- Convention from now on: one commit at the end of every phase.
 
 ### 2026-10-01 — Phase 0 verification
 - `make dev` verified: API `/health` returns ok on :8000, web returns 200 on :3000.
@@ -33,7 +38,7 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`.
 - **Recommendation:** OFBiz bounded to order + product + party + accounting; JPetStore as a secondary smoke test.
 
 ## Open decisions
-- Confirm demo target (OFBiz subset recommended).
+- None.
 
 ## Known gaps / risks
 - OFBiz logic in XML services/Groovy is invisible to a Java-only analyzer.
