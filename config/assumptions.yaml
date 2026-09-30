@@ -1,0 +1,10 @@
+# Every tunable weight and rate lives here. Nothing below is hard-coded in Python.
+# Placeholder values until Phase 3; each must be justified in docs/methodology.md.
+currency: JPY
+daily_rate_jpy: 80000
+base_days_per_kloc:
+  rehost: 2
+  replatform: 8
+  refactor: 20
+  rearchitect: 45
+  retire: 1
