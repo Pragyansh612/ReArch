@@ -10,3 +10,4 @@ out/
 targets/
 *.db
 .env
+.tools/

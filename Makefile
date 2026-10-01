@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 REPO ?=
 
-.PHONY: setup dev test lint analyze
+.PHONY: setup dev test lint analyze crosscheck
 
 setup:
 	python3 -m venv .venv
@@ -23,6 +23,15 @@ lint:
 	.venv/bin/mypy analyzer api llm
 	cd web && npm run lint
 
+# make analyze REPO=<git url or path> [SCOPE="dir1 dir2"] [NAME=name]
 analyze:
-	@test -n "$(REPO)" || (echo "usage: make analyze REPO=<git url or path>"; exit 1)
-	$(PY) -m analyzer "$(REPO)" --out out/
+	@test -n "$(REPO)" || (echo "usage: make analyze REPO=<git url or path> [SCOPE=\"dir ...\"] [NAME=x]"; exit 1)
+	@case "$(REPO)" in \
+	  http*|git@*) d=targets/$$(basename "$(REPO)" .git); [ -d "$$d" ] || git clone --depth 1 "$(REPO)" "$$d"; \
+	    $(PY) -m analyzer "$$d" $(if $(SCOPE),--scope $(SCOPE)) $(if $(NAME),--name $(NAME)) --out out/ ;; \
+	  *) $(PY) -m analyzer "$(REPO)" $(if $(SCOPE),--scope $(SCOPE)) $(if $(NAME),--name $(NAME)) --out out/ ;; \
+	esac
+
+# make crosscheck REPO=<path> NAME=<name> [SCOPE="dir ..."]   (cloc + grep vs analyzer output)
+crosscheck:
+	$(PY) scripts/crosscheck.py "$(REPO)" out/$(NAME).json $(if $(SCOPE),--scope $(SCOPE))

@@ -1,0 +1,742 @@
+{
+  "$defs": {
+    "ClassMetrics": {
+      "description": "One top-level Java type (one per file in practice).",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "fqn": {
+          "title": "Fqn",
+          "type": "string"
+        },
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "loc": {
+          "title": "Loc",
+          "type": "integer"
+        },
+        "fan_in": {
+          "title": "Fan In",
+          "type": "integer"
+        },
+        "fan_out": {
+          "title": "Fan Out",
+          "type": "integer"
+        },
+        "service_fan_in": {
+          "title": "Service Fan In",
+          "type": "integer"
+        },
+        "used": {
+          "title": "Used",
+          "type": "boolean"
+        },
+        "complexity": {
+          "title": "Complexity",
+          "type": "integer"
+        },
+        "complexity_band": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Complexity Band",
+          "type": "string"
+        },
+        "depends_on": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "depended_on_by": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Depended On By",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "fqn",
+        "module",
+        "file",
+        "loc",
+        "fan_in",
+        "fan_out",
+        "service_fan_in",
+        "used",
+        "complexity",
+        "complexity_band",
+        "depends_on",
+        "depended_on_by"
+      ],
+      "title": "ClassMetrics",
+      "type": "object"
+    },
+    "Cycles": {
+      "properties": {
+        "module_cycles": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Module Cycles",
+          "type": "array"
+        },
+        "class_cycles": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Class Cycles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "module_cycles",
+        "class_cycles"
+      ],
+      "title": "Cycles",
+      "type": "object"
+    },
+    "DbInstance": {
+      "properties": {
+        "type": {
+          "enum": [
+            "jdbc",
+            "entity_engine"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "title": "Line",
+          "type": "integer"
+        },
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "class_name": {
+          "title": "Class Name",
+          "type": "string"
+        },
+        "match": {
+          "title": "Match",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "file",
+        "line",
+        "module",
+        "class_name",
+        "match"
+      ],
+      "title": "DbInstance",
+      "type": "object"
+    },
+    "DbSummary": {
+      "properties": {
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "jdbc": {
+          "title": "Jdbc",
+          "type": "integer"
+        },
+        "entity_engine": {
+          "title": "Entity Engine",
+          "type": "integer"
+        },
+        "instances": {
+          "items": {
+            "$ref": "#/$defs/DbInstance"
+          },
+          "title": "Instances",
+          "type": "array"
+        }
+      },
+      "required": [
+        "total",
+        "jdbc",
+        "entity_engine",
+        "instances"
+      ],
+      "title": "DbSummary",
+      "type": "object"
+    },
+    "Dependency": {
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "coordinate": {
+          "title": "Coordinate",
+          "type": "string"
+        },
+        "declared_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Declared Version"
+        },
+        "declared_major": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Declared Major"
+        },
+        "min_current_major": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Min Current Major"
+        },
+        "checked": {
+          "title": "Checked",
+          "type": "boolean"
+        },
+        "outdated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Outdated"
+        }
+      },
+      "required": [
+        "file",
+        "coordinate",
+        "declared_version",
+        "declared_major",
+        "min_current_major",
+        "checked",
+        "outdated"
+      ],
+      "title": "Dependency",
+      "type": "object"
+    },
+    "Finding": {
+      "description": "One concrete issue with evidence.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "god_class",
+            "highly_coupled",
+            "module_without_tests",
+            "namespace_mix",
+            "module_cycle",
+            "outdated_dependency"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "kind",
+        "subject",
+        "detail"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "LegacyMarker": {
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "title": "Line",
+          "type": "integer"
+        },
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "family": {
+          "title": "Family",
+          "type": "string"
+        },
+        "import_": {
+          "title": "Import",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "line",
+        "module",
+        "namespace",
+        "family",
+        "import_"
+      ],
+      "title": "LegacyMarker",
+      "type": "object"
+    },
+    "ModuleMetrics": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Classes",
+          "type": "array"
+        },
+        "class_count": {
+          "title": "Class Count",
+          "type": "integer"
+        },
+        "loc": {
+          "title": "Loc",
+          "type": "integer"
+        },
+        "depends_on_modules": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Depends On Modules",
+          "type": "object"
+        },
+        "module_fan_out": {
+          "title": "Module Fan Out",
+          "type": "integer"
+        },
+        "module_fan_in": {
+          "title": "Module Fan In",
+          "type": "integer"
+        },
+        "has_tests": {
+          "title": "Has Tests",
+          "type": "boolean"
+        },
+        "test_classes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Test Classes",
+          "type": "array"
+        },
+        "groovy_test_files": {
+          "title": "Groovy Test Files",
+          "type": "integer"
+        },
+        "test_method_count": {
+          "title": "Test Method Count",
+          "type": "integer"
+        },
+        "javax_imports": {
+          "title": "Javax Imports",
+          "type": "integer"
+        },
+        "jakarta_imports": {
+          "title": "Jakarta Imports",
+          "type": "integer"
+        },
+        "namespace_mix": {
+          "title": "Namespace Mix",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "classes",
+        "class_count",
+        "loc",
+        "depends_on_modules",
+        "module_fan_out",
+        "module_fan_in",
+        "has_tests",
+        "test_classes",
+        "groovy_test_files",
+        "test_method_count",
+        "javax_imports",
+        "jakarta_imports",
+        "namespace_mix"
+      ],
+      "title": "ModuleMetrics",
+      "type": "object"
+    },
+    "RunMeta": {
+      "properties": {
+        "schema_version": {
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "repo_path": {
+          "title": "Repo Path",
+          "type": "string"
+        },
+        "scope": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Scope",
+          "type": "array"
+        },
+        "analyzer": {
+          "title": "Analyzer",
+          "type": "string"
+        },
+        "runtime_seconds": {
+          "title": "Runtime Seconds",
+          "type": "number"
+        },
+        "config_file": {
+          "title": "Config File",
+          "type": "string"
+        },
+        "dependency_table_as_of": {
+          "title": "Dependency Table As Of",
+          "type": "string"
+        },
+        "parse_errors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Parse Errors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "repo_path",
+        "scope",
+        "analyzer",
+        "runtime_seconds",
+        "config_file",
+        "dependency_table_as_of",
+        "parse_errors"
+      ],
+      "title": "RunMeta",
+      "type": "object"
+    },
+    "ServiceMapping": {
+      "properties": {
+        "service": {
+          "title": "Service",
+          "type": "string"
+        },
+        "engine": {
+          "title": "Engine",
+          "type": "string"
+        },
+        "implementation": {
+          "title": "Implementation",
+          "type": "string"
+        },
+        "analyzed": {
+          "title": "Analyzed",
+          "type": "boolean"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "class_found": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Class Found"
+        },
+        "method_found": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method Found"
+        }
+      },
+      "required": [
+        "service",
+        "engine",
+        "implementation",
+        "analyzed",
+        "file"
+      ],
+      "title": "ServiceMapping",
+      "type": "object"
+    },
+    "Totals": {
+      "properties": {
+        "main_java_classes": {
+          "title": "Main Java Classes",
+          "type": "integer"
+        },
+        "modules": {
+          "title": "Modules",
+          "type": "integer"
+        },
+        "main_java_loc": {
+          "title": "Main Java Loc",
+          "type": "integer"
+        },
+        "test_classes": {
+          "title": "Test Classes",
+          "type": "integer"
+        },
+        "dependencies_declared": {
+          "title": "Dependencies Declared",
+          "type": "integer"
+        },
+        "dependencies_checked": {
+          "title": "Dependencies Checked",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "main_java_classes",
+        "modules",
+        "main_java_loc",
+        "test_classes",
+        "dependencies_declared",
+        "dependencies_checked"
+      ],
+      "title": "Totals",
+      "type": "object"
+    },
+    "Unanalyzed": {
+      "properties": {
+        "groovy_count": {
+          "title": "Groovy Count",
+          "type": "integer"
+        },
+        "groovy_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Groovy Files",
+          "type": "array"
+        },
+        "service_xml_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Service Xml Files",
+          "type": "array"
+        },
+        "service_engine_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Service Engine Counts",
+          "type": "object"
+        },
+        "report_status": {
+          "const": "not_analyzed",
+          "default": "not_analyzed",
+          "title": "Report Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "groovy_count",
+        "groovy_files",
+        "service_xml_files",
+        "service_engine_counts"
+      ],
+      "title": "Unanalyzed",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "meta": {
+      "$ref": "#/$defs/RunMeta"
+    },
+    "totals": {
+      "$ref": "#/$defs/Totals"
+    },
+    "modules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ModuleMetrics"
+      },
+      "title": "Modules",
+      "type": "object"
+    },
+    "classes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ClassMetrics"
+      },
+      "title": "Classes",
+      "type": "object"
+    },
+    "cycles": {
+      "$ref": "#/$defs/Cycles"
+    },
+    "db_coupling": {
+      "$ref": "#/$defs/DbSummary"
+    },
+    "legacy_markers": {
+      "items": {
+        "$ref": "#/$defs/LegacyMarker"
+      },
+      "title": "Legacy Markers",
+      "type": "array"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/Dependency"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "service_mappings": {
+      "items": {
+        "$ref": "#/$defs/ServiceMapping"
+      },
+      "title": "Service Mappings",
+      "type": "array"
+    },
+    "unanalyzed_files": {
+      "$ref": "#/$defs/Unanalyzed"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "meta",
+    "totals",
+    "modules",
+    "classes",
+    "cycles",
+    "db_coupling",
+    "legacy_markers",
+    "dependencies",
+    "service_mappings",
+    "unanalyzed_files",
+    "findings"
+  ],
+  "title": "AnalysisResult",
+  "type": "object"
+}

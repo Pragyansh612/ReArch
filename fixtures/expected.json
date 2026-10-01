@@ -1,26 +1,12 @@
 {
-  "_about": "Test oracle for Phase 2. Every value was derived from the sources using the rules in `rules`, then spot-checked by hand (see docs/fixture.md). The analyzer must reproduce all of it.",
-  "rules": {
-    "loc": "Physical lines containing at least one non-whitespace character after removing comments (line, block, Javadoc). String contents are kept as code. Test files and non-Java files excluded.",
-    "fan_out": "Distinct OTHER project classes that class references: name appears as an identifier in code (comments and string literals ignored) AND is same-package or imported by FQN. Self-references ignored.",
-    "fan_in": "Distinct other project classes whose fan-out includes this class.",
-    "complexity": "Approximate cyclomatic: number of method/constructor bodies (abstract and interface methods contribute 0) plus decision points: if, else-if (counted as if), for, while, case, catch, ternary ?, &&, ||. `else` and `default` do not count.",
-    "complexity_band": "low: <=15, medium: 16-50, high: >50",
-    "god_class": "loc >= 400 AND complexity > 50",
-    "highly_coupled": "fan_in >= 5 AND fan_out >= 8",
-    "db_jdbc": "One instance per occurrence in code of DriverManager.getConnection( | .prepareStatement( | .createStatement(",
-    "db_entity_engine": "One instance per occurrence in code of EntityQuery.use( | delegator.makeValue( | delegator.create(",
-    "legacy_marker": "Import of javax.<family> except JDK packages javax.sql and javax.xml; jakarta.* imports are recorded as namespace=jakarta (migrated). A module with both is namespace_mix=true.",
-    "outdated_dependency": "declared_major < min_current_major. min_current_major is a conservative lower bound for the fixture; the analyzer's bundled table must be >= it for these coordinates. javax.* to jakarta.* renames are treated as major upgrades.",
-    "module": "Java package directly under com.example.legacy. Test presence = at least one class under src/test/java in the matching package.",
-    "service_mapping": "engine=java: implementation is `<fqn>#<method>` and is analyzed. engine=groovy: implementation is the script location and is NOT analyzed.",
-    "scope": "Only src/main/java is analyzed for metrics; src/test, src/main/groovy and resources are inventoried only."
-  },
+  "_about": "Expected OUTPUTS only (Phase 2 test oracle). Thresholds and rules live in config/assumptions.yaml; metric definitions in docs/methodology.md. Values were derived from the sources by a throwaway script (reachability closure for cycles, regex on comment-stripped text for the rest), then spot-checked by hand; see docs/fixture.md.",
   "totals": {
-    "main_java_classes": 18,
+    "main_java_classes": 20,
     "modules": 4,
-    "main_java_loc": 1227,
-    "test_classes": 3
+    "main_java_loc": 2026,
+    "test_classes": 3,
+    "dependencies_declared": 11,
+    "dependencies_checked": 11
   },
   "modules": {
     "billing": {
@@ -28,10 +14,12 @@
         "BillingException",
         "InvoiceItem",
         "InvoiceService",
-        "PaymentCalculator"
+        "LedgerReconciler",
+        "PaymentCalculator",
+        "StatementFormatter"
       ],
-      "class_count": 4,
-      "loc": 106,
+      "class_count": 6,
+      "loc": 905,
       "depends_on_modules": {
         "common": 1,
         "order": 1
@@ -43,6 +31,7 @@
         "InvoiceServiceTest",
         "PaymentCalculatorTest"
       ],
+      "groovy_test_files": 0,
       "javax_imports": 0,
       "jakarta_imports": 0,
       "namespace_mix": false
@@ -61,6 +50,7 @@
       "module_fan_in": 3,
       "has_tests": false,
       "test_classes": [],
+      "groovy_test_files": 0,
       "javax_imports": 0,
       "jakarta_imports": 0,
       "namespace_mix": false
@@ -85,6 +75,7 @@
       "module_fan_in": 2,
       "has_tests": false,
       "test_classes": [],
+      "groovy_test_files": 0,
       "javax_imports": 1,
       "jakarta_imports": 0,
       "namespace_mix": false
@@ -108,6 +99,7 @@
       "test_classes": [
         "PartyServiceTest"
       ],
+      "groovy_test_files": 0,
       "javax_imports": 1,
       "jakarta_imports": 1,
       "namespace_mix": true
@@ -122,6 +114,8 @@
       "fan_out": 0,
       "complexity": 1,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [],
       "depended_on_by": [
         "InvoiceService"
@@ -135,6 +129,8 @@
       "fan_out": 0,
       "complexity": 4,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [],
       "depended_on_by": [
         "InvoiceService",
@@ -150,6 +146,8 @@
       "fan_out": 5,
       "complexity": 10,
       "complexity_band": "low",
+      "service_fan_in": 1,
+      "used": true,
       "depends_on": [
         "BillingException",
         "InvoiceItem",
@@ -162,6 +160,19 @@
         "OrderServices"
       ]
     },
+    "LedgerReconciler": {
+      "file": "src/main/java/com/example/legacy/billing/LedgerReconciler.java",
+      "module": "billing",
+      "loc": 400,
+      "fan_in": 0,
+      "fan_out": 0,
+      "complexity": 51,
+      "complexity_band": "high",
+      "service_fan_in": 0,
+      "used": false,
+      "depends_on": [],
+      "depended_on_by": []
+    },
     "PaymentCalculator": {
       "file": "src/main/java/com/example/legacy/billing/PaymentCalculator.java",
       "module": "billing",
@@ -170,12 +181,27 @@
       "fan_out": 1,
       "complexity": 4,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [
         "InvoiceItem"
       ],
       "depended_on_by": [
         "InvoiceService"
       ]
+    },
+    "StatementFormatter": {
+      "file": "src/main/java/com/example/legacy/billing/StatementFormatter.java",
+      "module": "billing",
+      "loc": 399,
+      "fan_in": 0,
+      "fan_out": 0,
+      "complexity": 50,
+      "complexity_band": "medium",
+      "service_fan_in": 0,
+      "used": false,
+      "depends_on": [],
+      "depended_on_by": []
     },
     "Delegator": {
       "file": "src/main/java/com/example/legacy/common/Delegator.java",
@@ -185,6 +211,8 @@
       "fan_out": 1,
       "complexity": 0,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [
         "GenericValue"
       ],
@@ -203,6 +231,8 @@
       "fan_out": 2,
       "complexity": 6,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [
         "Delegator",
         "GenericValue"
@@ -221,6 +251,8 @@
       "fan_out": 0,
       "complexity": 6,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [],
       "depended_on_by": [
         "Delegator",
@@ -238,6 +270,8 @@
       "fan_out": 0,
       "complexity": 8,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [],
       "depended_on_by": [
         "InvoiceService",
@@ -255,6 +289,8 @@
       "fan_out": 2,
       "complexity": 6,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [
         "OrderItem",
         "OrderStatus"
@@ -272,6 +308,8 @@
       "fan_out": 0,
       "complexity": 5,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [],
       "depended_on_by": [
         "Order",
@@ -288,6 +326,8 @@
       "fan_out": 10,
       "complexity": 16,
       "complexity_band": "medium",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [
         "Delegator",
         "EntityQuery",
@@ -316,6 +356,8 @@
       "fan_out": 13,
       "complexity": 229,
       "complexity_band": "high",
+      "service_fan_in": 2,
+      "used": true,
       "depends_on": [
         "Delegator",
         "EntityQuery",
@@ -341,6 +383,8 @@
       "fan_out": 0,
       "complexity": 0,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [],
       "depended_on_by": [
         "Order",
@@ -356,6 +400,8 @@
       "fan_out": 3,
       "complexity": 10,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [
         "OrderItem",
         "OrderReadHelper",
@@ -374,6 +420,8 @@
       "fan_out": 0,
       "complexity": 3,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": true,
       "depends_on": [],
       "depended_on_by": [
         "OrderServices",
@@ -390,6 +438,8 @@
       "fan_out": 3,
       "complexity": 3,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": false,
       "depends_on": [
         "OrderReadHelper",
         "Party",
@@ -405,6 +455,8 @@
       "fan_out": 1,
       "complexity": 3,
       "complexity_band": "low",
+      "service_fan_in": 0,
+      "used": false,
       "depends_on": [
         "Party"
       ],
@@ -418,6 +470,8 @@
       "fan_out": 6,
       "complexity": 7,
       "complexity_band": "low",
+      "service_fan_in": 1,
+      "used": true,
       "depends_on": [
         "Delegator",
         "EntityQuery",
@@ -433,11 +487,29 @@
       ]
     }
   },
+  "cycles": {
+    "module_cycles": [
+      [
+        "billing",
+        "order",
+        "party"
+      ]
+    ],
+    "class_cycles": [
+      [
+        "InvoiceService",
+        "OrderReadHelper",
+        "PartyService",
+        "ShoppingCart"
+      ]
+    ]
+  },
   "deliberate_smells": [
     {
       "smell": "god_class",
-      "why": "OrderServices holds every order workflow in one ~800-line class with 16 near-identical workflow methods. Stands in for OFBiz OrderServices.java (7,516 LOC). Also in a module with no tests.",
+      "why": "OrderServices holds every order workflow in one ~800-line class with 16 near-identical workflow methods. Stands in for OFBiz OrderServices.java (7,516 LOC). Also in a module with no tests. LedgerReconciler (LOC 400, complexity 51) sits exactly on the thresholds and MUST be flagged; StatementFormatter (LOC 399, complexity 50) sits one short of both and must NOT be.",
       "subjects": [
+        "LedgerReconciler",
         "OrderServices"
       ]
     },
@@ -510,7 +582,11 @@
     },
     {
       "where": "OrderServices",
-      "what": "fan-out 13 but fan-in 0, so NOT highly coupled (only god class)"
+      "what": "Java fan-in is 0 but it is referenced by 2 services.xml entries (service_fan_in 2), so used=true; fan-out 13 but fan-in 0, so NOT highly coupled"
+    },
+    {
+      "where": "StatementFormatter / LedgerReconciler",
+      "what": "boundary classes: LOC 399/cx 50 is not a god class; LOC 400/cx 51 is. They have no dependencies and are unused (fan_in 0, service_fan_in 0)"
     },
     {
       "where": "Delegator.java / EntityQuery.java stubs",
@@ -1033,6 +1109,7 @@
     ]
   },
   "dependencies": {
+    "table_as_of": "2026-10-01",
     "outdated_count": 8,
     "not_outdated": [
       "junit:junit",

@@ -8,3 +8,87 @@ base_days_per_kloc:
   refactor: 20
   rearchitect: 45
   retire: 1
+
+# ---------------------------------------------------------------------------
+# Phase 2: analyzer rules. The analyzer reads everything below; nothing is hard-coded.
+# fixtures/expected.json only holds expected OUTPUTS. Definitions live in docs/methodology.md.
+# ---------------------------------------------------------------------------
+analysis:
+  # A module is the first package segment after one of these roots
+  # (com.example.legacy.order.Foo -> "order"). Longest matching root wins.
+  module_roots:
+    - com.example.legacy
+    - org.apache.ofbiz
+    - org.mybatis.jpetstore
+
+  # Source layout, relative to each analysed directory.
+  main_java_dir: src/main/java
+  test_java_dir: src/test/java
+  test_groovy_dir: src/test/groovy   # Groovy tests are counted as test evidence, never parsed
+  services_dir_name: servicedef        # directories holding OFBiz service definitions
+  skip_dirs: [.git, node_modules, build, target, .gradle, out]
+
+  # Approximate cyclomatic complexity of a class: bodies + decision points.
+  complexity_bands:
+    low_max: 15        # <= 15 is low
+    medium_max: 50     # 16..50 is medium, > 50 is high
+
+  god_class:           # BOTH must hold
+    min_loc: 400               # loc >= 400
+    min_complexity_above: 50   # complexity > 50
+
+  highly_coupled:      # BOTH must hold (Java fan-in/out, not service fan-in)
+    min_fan_in: 5
+    min_fan_out: 8
+
+  # Database coupling: one instance per matching method call in code
+  # (tree-sitter method_invocation; comments and string literals never match).
+  # `receiver` is the simple name of the object the method is called on; omit to match any receiver.
+  db_coupling:
+    ignore_classes: [EntityQuery, Delegator]   # the entity-engine API itself, not business logic
+    jdbc:
+      - {receiver: DriverManager, method: getConnection}
+      - {method: prepareStatement}
+      - {method: createStatement}
+    entity_engine:
+      - {receiver: EntityQuery, method: use}
+      - {receiver: delegator, method: makeValue}
+      - {receiver: delegator, method: create}
+      - {receiver: delegator, method: store}
+      - {receiver: delegator, method: findOne}
+      - {receiver: delegator, method: findList}
+      - {receiver: delegator, method: findByAnd}
+      - {receiver: delegator, method: findAll}
+      - {receiver: delegator, method: removeValue}
+      - {receiver: delegator, method: removeByAnd}
+      - {receiver: delegator, method: getNextSeqId}
+
+  # Legacy markers are import statements.
+  legacy_markers:
+    # javax.* packages that moved to jakarta.* (JDK packages such as javax.sql / javax.crypto are NOT listed).
+    javax_migrating: [servlet, mail, ejb, persistence, jms, transaction, activation, ws, annotation,
+                      inject, validation, faces, el, json, jws, resource, enterprise, batch,
+                      xml.bind, xml.ws, xml.soap]
+    legacy_frameworks:
+      struts: [org.apache.struts, org.apache.struts2, com.opensymphony.xwork2]
+
+# Dependency age. `min_current_major` is a CONSERVATIVE LOWER BOUND of the current major version of
+# each coordinate: a dependency is outdated iff declared major < this number. Renames such as
+# javax.* -> jakarta.* are treated as a major upgrade. Coordinates not listed are reported as unchecked.
+# Re-verify this table before quoting dependency findings to a client.
+dependency_table:
+  as_of: "2026-10-01"
+  min_current_major:
+    org.springframework:spring-core: 6
+    org.springframework:spring-web: 6
+    org.apache.struts:struts2-core: 6
+    javax.servlet:javax.servlet-api: 6
+    mysql:mysql-connector-java: 8
+    org.codehaus.groovy:groovy-all: 4
+    org.apache.tomcat:tomcat-catalina: 10
+    com.sun.mail:javax.mail: 2
+    javax.activation:activation: 2              # -> jakarta.activation
+    javax.transaction:javax.transaction-api: 2  # -> jakarta.transaction
+    javax.xml.soap:javax.xml.soap-api: 2        # -> jakarta.xml.soap
+    org.slf4j:slf4j-api: 2
+    junit:junit: 4
