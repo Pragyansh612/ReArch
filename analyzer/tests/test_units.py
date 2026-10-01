@@ -89,3 +89,18 @@ def test_calendar_versions_are_unchecked_not_outdated() -> None:
         "d:e": SnapshotEntry(latest_stable_version="20260924.2", latest_major=20260924)})
     out = evaluate("f", [("d:e", "20240325.1")], snap, date_based_min=1900)
     assert [(d.checked, d.outdated) for d in out] == [(False, None)]
+
+
+def test_testdef_without_class_name_is_attributed_by_component(tmp_path: Path) -> None:
+    from analyzer.analyze import analyze
+
+    java = tmp_path / "applications/shop/src/main/java/com/example/legacy/order"
+    java.mkdir(parents=True)
+    (java / "A.java").write_text("package com.example.legacy.order;\npublic class A {}\n")
+    testdef = tmp_path / "applications/shop/testdef"
+    testdef.mkdir(parents=True)
+    (testdef / "ShopTests.xml").write_text(
+        '<test-suite><test-case case-name="load"><entity-xml action="load" entity-xml-url="x"/></test-case>'
+        '<test-case case-name="svc"><service-test service-name="createOrder"/></test-case></test-suite>')
+    order = analyze(tmp_path).modules["order"]
+    assert (order.testdef_suite_files, order.testdef_test_cases, order.has_tests) == (1, 1, True)

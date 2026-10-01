@@ -70,6 +70,8 @@ class AnalysisConfig(BaseModel):
     test_java_dir: str
     test_groovy_dir: str
     services_dir_name: str
+    testdef_dir_name: str
+    testdef_data_load_elements: list[str]
     skip_dirs: list[str]
     date_based_version_min: int
     coverage: CoverageRules

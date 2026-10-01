@@ -54,6 +54,7 @@ class Coverage(BaseModel):
     service_defs_by_engine: dict[str, int]
     implemented_defs: int  # excludes engines that implement nothing (interface, group)
     java_defs: int
+    entity_auto_defs: int  # generated-CRUD definitions: reported, but excluded from the implemented denominator
     java_share: float | None  # None when the component defines no services
     groovy_logic_files: int  # Groovy files outside the test directory (counted, not parsed)
     confidence: Confidence
@@ -67,9 +68,11 @@ class ModuleMetrics(BaseModel):
     depends_on_modules: dict[str, int]  # module -> number of class-level edges
     module_fan_out: int
     module_fan_in: int
-    has_tests: bool  # any test evidence: Java test classes or Groovy test scripts
+    has_tests: bool  # any test evidence: Java test classes, Groovy test scripts or testdef test cases
     test_classes: list[str]  # Java test classes in the matching package
     groovy_test_files: int  # Groovy test scripts in the matching package (counted, not parsed)
+    testdef_suite_files: int  # OFBiz testdef/*.xml suites with at least one test case attributed to this module
+    testdef_test_cases: int  # <test-case> entries that run something (data-load-only cases are excluded)
     test_method_count: int
     javax_imports: int
     jakarta_imports: int
@@ -161,6 +164,7 @@ class Unanalyzed(BaseModel):
     service_xml_files: list[str]
     service_engine_counts: dict[str, int]
     controller_xml_files: list[str]
+    testdef_files: list[str]
     controller_event_counts: dict[str, int]  # by event type (java is analysed; service/groovy/simple are not)
     report_status: Literal["not_analyzed"] = "not_analyzed"
 

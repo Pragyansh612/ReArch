@@ -6,9 +6,10 @@ import math
 from collections.abc import Callable
 
 from engine.config import CRITERIA, EngineConfig, Priorities, Strategy
+from engine.scenario import ClientScenario
 from engine.schema import Flip
 from engine.scoring import pick
-from engine.strategies import ModuleInputs, build_options
+from engine.strategies import UnitInputs, build_options
 
 Evaluate = Callable[[float], Strategy]
 _REFINE_ITERATIONS = 40
@@ -72,31 +73,30 @@ def _reweighted(weights: Priorities, criterion: str, t: float) -> Priorities:
     return Priorities(**values)
 
 
-def find_flips(m: ModuleInputs, cfg: EngineConfig, weights: Priorities, base: Strategy) -> list[Flip]:
+def find_flips(m: UnitInputs, cfg: EngineConfig, scenario: ClientScenario, weights: Priorities,
+               base: Strategy) -> list[Flip]:
     steps, factor = cfg.sensitivity.steps, cfg.sensitivity.range_factor
     grid = [factor ** (k / steps) for k in range(1, steps + 1)]
     flips: list[Flip] = []
-    multiplicative = ["daily_rate_jpy"] + [f"base_days_per_kloc.{s}" for s in cfg.strategies]
+    movable = [s for s in cfg.strategies if s != "retain"]
+    multiplicative = ["daily_rate_jpy"] + [f"base_days_per_kloc.{s}" for s in movable]
     for parameter in multiplicative:
         current = cfg.daily_rate_jpy if parameter == "daily_rate_jpy" else cfg.base_days_per_kloc[parameter.split(".")[1]]  # type: ignore[index]
 
         def evaluate(value: float, parameter: str = parameter) -> Strategy:
-            return pick(build_options(m, _scaled(cfg, parameter, value)), weights, cfg)
+            scaled = _scaled(cfg, parameter, value)
+            return pick(build_options(m, scaled, scenario), weights, scaled)
 
         hit = _search(evaluate, current, base, [(current * g, current / g) for g in grid], in_log_space=True)
-        note = f"no flip between x{1 / factor:g} and x{factor:g} of the current value"
-        if parameter == "daily_rate_jpy":
-            note += ": the rate scales every strategy's cost equally, so it changes totals but never the ranking"
-        flips.append(_flip(parameter, current, hit, note))
+        flips.append(_flip(parameter, current, hit, f"no flip between x{1 / factor:g} and x{factor:g} of the current value"))
+    options = build_options(m, cfg, scenario)  # priority weights do not change the options, only how they are scored
     for criterion in CRITERIA:
         current = getattr(weights, criterion)
 
         def evaluate_w(value: float, criterion: str = criterion) -> Strategy:
-            return pick(build_options(m, cfg), _reweighted(weights, criterion, value), cfg)
+            return pick(options, _reweighted(weights, criterion, value), cfg)
 
-        candidates = [(current + (1.0 - current) * k / steps, current - current * k / steps)
-                      for k in range(1, steps + 1)]
+        candidates = [(current + (1.0 - current) * k / steps, current - current * k / steps) for k in range(1, steps + 1)]
         flips.append(_flip(f"priority.{criterion}", current, _search(evaluate_w, current, base, candidates, False),
                            "no flip for any weight between 0 and 1 (other weights rescaled to keep the sum at 1)"))
-    return sorted(flips, key=lambda f: (f.change_pct is None, f.change_pct if f.change_pct is not None else 0.0,
-                                        f.parameter))
+    return sorted(flips, key=lambda f: (f.change_pct is None, f.change_pct if f.change_pct is not None else 0.0, f.parameter))

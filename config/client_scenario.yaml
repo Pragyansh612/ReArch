@@ -1,0 +1,81 @@
+# =====================================================================================================
+# FICTIONAL CLIENT SCENARIO -- written for the ReArch portfolio demo. Not a real company, not real data.
+# Every number below is ILLUSTRATIVE. In a real engagement each is gathered in client interviews and
+# validated against invoices, ticket history and org charts before it is used.
+# The engine reads this file: constraints make options feasible or infeasible, objectives weight the value
+# model, the priorities become a scoring profile, and the criticality overrides (client judgment) replace
+# the tool's heuristic.
+# =====================================================================================================
+client:
+  name: "Sakura Wholesale Co., Ltd. (FICTIONAL)"
+  hq: Tokyo
+  description: >
+    Mid-size distributor of consumer goods (about 480 employees, 3 distribution centres) running a heavily
+    customised Apache OFBiz ERP for orders, catalogue, customers and invoicing.
+  fictional: true
+
+problem:
+  statement: >
+    The ERP has become expensive to keep and slow to change. Customisations were built over many years by a few
+    engineers; two of them are close to retirement.
+  symptoms:
+    - Maintenance and support consume most of the IT budget; little is left for improvement.
+    - A new feature (for example a customer-specific price rule) takes months from request to release.
+    - Only two engineers can safely change the order and accounting code.
+
+# Measurable objectives. `weight` is the relative importance (sums to 1) and drives the value model;
+# `current` and `target` are the KPI values the programme is judged against (ILLUSTRATIVE).
+objectives:
+  - id: maintenance_cost
+    label: Annual ERP maintenance cost
+    unit: JPY million per year
+    current: 180
+    target: 110
+    weight: 0.30
+    illustrative: true
+  - id: change_lead_time
+    label: Lead time for a standard feature, request to release
+    unit: days
+    current: 90
+    target: 30
+    weight: 0.35
+    illustrative: true
+  - id: expert_dependency
+    label: Engineers who can safely change order and accounting code
+    unit: people
+    current: 2
+    target: 6
+    weight: 0.20
+    illustrative: true
+  - id: run_cost
+    label: Annual hosting and infrastructure cost
+    unit: JPY million per year
+    current: 36
+    target: 24
+    weight: 0.15
+    illustrative: true
+
+constraints:
+  planning_horizon_years: 5
+  budget_ceiling_jpy: 250000000          # total programme budget; one option above it is infeasible
+  max_cutover_downtime_hours:            # longest acceptable outage for a cutover, by module
+    order: 4
+    accounting: 2
+
+# How this client weighs the four decision criteria (sums to 1). Becomes the `client_scenario` profile.
+priorities:
+  cost: 0.25
+  risk: 0.35
+  speed: 0.10
+  long_term_value: 0.30
+
+# Criticality is a client judgment (1 supporting, 2 important, 3 mission-critical). Overrides win over the heuristic
+# and carry a written reason. Keyed by analysis name.
+criticality_overrides:
+  ofbiz:
+    - module: accounting
+      criticality: 3
+      reason: "From client interview: financial close and statutory audit depend on it; an outage blocks month-end."
+    - module: shipment
+      criticality: 2
+      reason: "From client interview: customer delivery commitments run through shipment, so it matters more than usage counts suggest."

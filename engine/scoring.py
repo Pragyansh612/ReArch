@@ -1,4 +1,4 @@
-"""Priorities: score each eligible strategy per module on absolute scales, pick the best, report the margin."""
+"""Priorities: score each selectable strategy on absolute scales, pick the best, report the margin."""
 
 from __future__ import annotations
 
@@ -8,8 +8,6 @@ from engine.config import CRITERIA, Criterion, EngineConfig, Priorities, Strateg
 from engine.schema import CriterionScore, ScoredStrategy, StrategyChoice
 from engine.strategies import OptionCalc
 
-_RAW = {"cost": "cost_jpy", "risk": "risk_score", "speed": "duration_months", "long_term_value": "long_term_value"}
-
 
 @dataclass
 class Ranked:
@@ -18,15 +16,18 @@ class Ranked:
     criteria: list[CriterionScore]
 
 
-def _raw(o: OptionCalc, criterion: Criterion) -> float:
-    return float(getattr(o, _RAW[criterion]))
+def raw_value(o: OptionCalc, criterion: Criterion) -> float:
+    return {"cost": float(o.tco_jpy), "risk": o.risk_score, "speed": o.duration_months, "long_term_value": o.value}[criterion]
 
 
-def goodness(criterion: Criterion, raw: float, cfg: EngineConfig) -> float:
-    """Absolute 0..1 scale per criterion (see config `scoring`); never relative to the other options."""
+def goodness(criterion: Criterion, raw: float, cfg: EngineConfig, retain_tco: float) -> float:
+    """Absolute 0..1 scale per criterion (see config `scoring`); never relative to the other options.
+
+    Cost is the horizon TCO scored against doing nothing: TCO equal to the retain TCO scores 1 - 1/ceiling.
+    """
     rule = cfg.scoring
     if criterion == "cost":
-        return max(0.0, 1.0 - raw / rule.cost_ceiling_jpy)
+        return 1.0 if retain_tco <= 0 else max(0.0, 1.0 - raw / (rule.cost_ratio_ceiling * retain_tco))
     if criterion == "speed":
         return max(0.0, 1.0 - raw / rule.duration_ceiling_months)
     if criterion == "risk":
@@ -34,18 +35,33 @@ def goodness(criterion: Criterion, raw: float, cfg: EngineConfig) -> float:
     return min(1.0, raw / 100.0)
 
 
-def rank(options: list[OptionCalc], weights: Priorities, cfg: EngineConfig) -> list[Ranked]:
-    """Eligible options, best first. Ties break by the order of `strategies` in the config (cheaper first)."""
-    ranked: list[Ranked] = []
-    for o in (x for x in options if x.eligible):
-        criteria: list[CriterionScore] = []
-        for c in CRITERIA:
-            g, w = round(goodness(c, _raw(o, c), cfg), 6), getattr(weights, c)  # contribution uses the shown value
-            criteria.append(CriterionScore(criterion=c, raw=_raw(o, c), goodness=g, weight=w,
-                                           contribution=round(100.0 * w * g, 4)))
-        ranked.append(Ranked(o.strategy, round(sum(x.contribution for x in criteria), 4), criteria))
+def _criteria(o: OptionCalc, weights: Priorities, cfg: EngineConfig, retain_tco: float) -> list[tuple[Criterion, float, float, float, float]]:
+    """(criterion, raw, goodness, weight, contribution); contribution uses the SHOWN (rounded) goodness."""
+    out = []
+    for c in CRITERIA:
+        raw, w = raw_value(o, c), getattr(weights, c)
+        g = round(goodness(c, raw, cfg, retain_tco), 6)
+        out.append((c, raw, g, w, round(100.0 * w * g, 4)))
+    return out
+
+
+Crit = list[tuple[Criterion, float, float, float, float]]
+
+
+def _scores(options: list[OptionCalc], weights: Priorities, cfg: EngineConfig) -> list[tuple[Strategy, float, Crit]]:
+    retain_tco = float(next(o for o in options if o.strategy == "retain").tco_jpy)
+    scored = []
+    for o in (x for x in options if x.selectable):
+        crit = _criteria(o, weights, cfg, retain_tco)
+        scored.append((o.strategy, round(sum(c[4] for c in crit), 4), crit))
     order = {s: i for i, s in enumerate(cfg.strategies)}
-    return sorted(ranked, key=lambda r: (-r.score, order[r.strategy]))
+    return sorted(scored, key=lambda r: (-r[1], order[r[0]]))
+
+
+def rank(options: list[OptionCalc], weights: Priorities, cfg: EngineConfig) -> list[Ranked]:
+    """Selectable options (eligible AND feasible), best first. Ties go to the earlier strategy in the config."""
+    return [Ranked(s, score, [CriterionScore(criterion=c, raw=raw, goodness=g, weight=w, contribution=contrib)
+                              for c, raw, g, w, contrib in crit]) for s, score, crit in _scores(options, weights, cfg)]
 
 
 def choose(options: list[OptionCalc], weights: Priorities, profile: str, cfg: EngineConfig) -> StrategyChoice:
@@ -60,4 +76,4 @@ def choose(options: list[OptionCalc], weights: Priorities, profile: str, cfg: En
 
 
 def pick(options: list[OptionCalc], weights: Priorities, cfg: EngineConfig) -> Strategy:
-    return rank(options, weights, cfg)[0].strategy
+    return _scores(options, weights, cfg)[0][0]

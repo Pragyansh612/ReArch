@@ -1,5 +1,38 @@
 {
   "$defs": {
+    "CashFlowYear": {
+      "properties": {
+        "year": {
+          "title": "Year",
+          "type": "integer"
+        },
+        "migration_jpy": {
+          "title": "Migration Jpy",
+          "type": "integer"
+        },
+        "run_jpy": {
+          "title": "Run Jpy",
+          "type": "integer"
+        },
+        "maintenance_jpy": {
+          "title": "Maintenance Jpy",
+          "type": "integer"
+        },
+        "total_jpy": {
+          "title": "Total Jpy",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "year",
+        "migration_jpy",
+        "run_jpy",
+        "maintenance_jpy",
+        "total_jpy"
+      ],
+      "title": "CashFlowYear",
+      "type": "object"
+    },
     "Component": {
       "properties": {
         "key": {
@@ -191,7 +224,7 @@
       "type": "object"
     },
     "Flip": {
-      "description": "The smallest single-assumption change that flips this module's recommendation.",
+      "description": "The smallest single-assumption change that flips this unit's recommendation.",
       "properties": {
         "parameter": {
           "title": "Parameter",
@@ -227,6 +260,7 @@
           "anyOf": [
             {
               "enum": [
+                "retain",
                 "rehost",
                 "replatform",
                 "refactor",
@@ -461,33 +495,19 @@
           ],
           "title": "Java Share"
         },
-        "inbound_references": {
-          "additionalProperties": {
-            "type": "integer"
-          },
-          "title": "Inbound References",
-          "type": "object"
-        },
-        "options": {
+        "work_package_ids": {
           "items": {
-            "$ref": "#/$defs/StrategyOption"
+            "type": "string"
           },
-          "title": "Options",
+          "title": "Work Package Ids",
           "type": "array"
         },
-        "choices": {
+        "rollups": {
           "additionalProperties": {
-            "$ref": "#/$defs/StrategyChoice"
+            "$ref": "#/$defs/ModuleRollup"
           },
-          "title": "Choices",
+          "title": "Rollups",
           "type": "object"
-        },
-        "sensitivity": {
-          "items": {
-            "$ref": "#/$defs/Flip"
-          },
-          "title": "Sensitivity",
-          "type": "array"
         }
       },
       "required": [
@@ -498,12 +518,135 @@
         "criticality",
         "confidence",
         "java_share",
-        "inbound_references",
-        "options",
-        "choices",
-        "sensitivity"
+        "work_package_ids",
+        "rollups"
       ],
       "title": "ModuleReport",
+      "type": "object"
+    },
+    "ModuleRollup": {
+      "description": "A module's work packages under one profile; every figure is the sum over its packages.",
+      "properties": {
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        },
+        "strategy_by_work_package": {
+          "additionalProperties": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "type": "string"
+          },
+          "title": "Strategy By Work Package",
+          "type": "object"
+        },
+        "loc": {
+          "title": "Loc",
+          "type": "integer"
+        },
+        "effort_days": {
+          "title": "Effort Days",
+          "type": "number"
+        },
+        "migration_cost_jpy": {
+          "title": "Migration Cost Jpy",
+          "type": "integer"
+        },
+        "tco_jpy": {
+          "title": "Tco Jpy",
+          "type": "integer"
+        },
+        "retain_tco_jpy": {
+          "title": "Retain Tco Jpy",
+          "type": "integer"
+        },
+        "duration_months": {
+          "title": "Duration Months",
+          "type": "number"
+        }
+      },
+      "required": [
+        "profile",
+        "strategy_by_work_package",
+        "loc",
+        "effort_days",
+        "migration_cost_jpy",
+        "tco_jpy",
+        "retain_tco_jpy",
+        "duration_months"
+      ],
+      "title": "ModuleRollup",
+      "type": "object"
+    },
+    "ObjectiveContribution": {
+      "properties": {
+        "objective": {
+          "title": "Objective",
+          "type": "string"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
+        "effect": {
+          "title": "Effect",
+          "type": "number"
+        },
+        "contribution": {
+          "title": "Contribution",
+          "type": "number"
+        }
+      },
+      "required": [
+        "objective",
+        "weight",
+        "effect",
+        "contribution"
+      ],
+      "title": "ObjectiveContribution",
+      "type": "object"
+    },
+    "OutdatedDependencies": {
+      "description": "Estate-level finding: outdated dependencies cannot be attributed to a module without its own build file.",
+      "properties": {
+        "declared": {
+          "title": "Declared",
+          "type": "integer"
+        },
+        "checked": {
+          "title": "Checked",
+          "type": "integer"
+        },
+        "unchecked": {
+          "title": "Unchecked",
+          "type": "integer"
+        },
+        "outdated": {
+          "title": "Outdated",
+          "type": "integer"
+        },
+        "outdated_coordinates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Outdated Coordinates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "declared",
+        "checked",
+        "unchecked",
+        "outdated",
+        "outdated_coordinates"
+      ],
+      "title": "OutdatedDependencies",
       "type": "object"
     },
     "Priorities": {
@@ -544,9 +687,10 @@
         "weights": {
           "$ref": "#/$defs/Priorities"
         },
-        "strategy_by_module": {
+        "strategy_by_work_package": {
           "additionalProperties": {
             "enum": [
+              "retain",
               "rehost",
               "replatform",
               "refactor",
@@ -555,20 +699,51 @@
             ],
             "type": "string"
           },
-          "title": "Strategy By Module",
+          "title": "Strategy By Work Package",
+          "type": "object"
+        },
+        "strategy_mix": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Strategy Mix",
           "type": "object"
         },
         "total_effort_days": {
           "title": "Total Effort Days",
           "type": "number"
         },
-        "total_cost_jpy": {
-          "title": "Total Cost Jpy",
+        "total_migration_cost_jpy": {
+          "title": "Total Migration Cost Jpy",
+          "type": "integer"
+        },
+        "total_tco_jpy": {
+          "title": "Total Tco Jpy",
+          "type": "integer"
+        },
+        "retain_tco_jpy": {
+          "title": "Retain Tco Jpy",
+          "type": "integer"
+        },
+        "tco_savings_vs_retain_jpy": {
+          "title": "Tco Savings Vs Retain Jpy",
+          "type": "integer"
+        },
+        "npv_vs_retain_jpy": {
+          "title": "Npv Vs Retain Jpy",
           "type": "integer"
         },
         "total_duration_months": {
           "title": "Total Duration Months",
           "type": "number"
+        },
+        "budget_ceiling_jpy": {
+          "title": "Budget Ceiling Jpy",
+          "type": "integer"
+        },
+        "within_budget": {
+          "title": "Within Budget",
+          "type": "boolean"
         },
         "close_calls": {
           "items": {
@@ -581,10 +756,17 @@
       "required": [
         "profile",
         "weights",
-        "strategy_by_module",
+        "strategy_by_work_package",
+        "strategy_mix",
         "total_effort_days",
-        "total_cost_jpy",
+        "total_migration_cost_jpy",
+        "total_tco_jpy",
+        "retain_tco_jpy",
+        "tco_savings_vs_retain_jpy",
+        "npv_vs_retain_jpy",
         "total_duration_months",
+        "budget_ceiling_jpy",
+        "within_budget",
         "close_calls"
       ],
       "title": "ProfileTotals",
@@ -593,7 +775,7 @@
     "RecommendationMeta": {
       "properties": {
         "schema_version": {
-          "default": "1.0",
+          "default": "2.0",
           "title": "Schema Version",
           "type": "string"
         },
@@ -609,8 +791,12 @@
           "title": "Selected Profile",
           "type": "string"
         },
+        "scenario_client": {
+          "title": "Scenario Client",
+          "type": "string"
+        },
         "engine": {
-          "default": "rearch-engine 0.1.0",
+          "default": "rearch-engine 0.2.0",
           "title": "Engine",
           "type": "string"
         },
@@ -626,6 +812,7 @@
         "analysis_name",
         "analyzer",
         "selected_profile",
+        "scenario_client",
         "notes"
       ],
       "title": "RecommendationMeta",
@@ -635,6 +822,7 @@
       "properties": {
         "strategy": {
           "enum": [
+            "retain",
             "rehost",
             "replatform",
             "refactor",
@@ -675,6 +863,7 @@
         },
         "chosen": {
           "enum": [
+            "retain",
             "rehost",
             "replatform",
             "refactor",
@@ -692,6 +881,7 @@
           "anyOf": [
             {
               "enum": [
+                "retain",
                 "rehost",
                 "replatform",
                 "refactor",
@@ -758,6 +948,7 @@
       "properties": {
         "strategy": {
           "enum": [
+            "retain",
             "rehost",
             "replatform",
             "refactor",
@@ -782,6 +973,19 @@
           ],
           "default": null,
           "title": "Ineligible Reason"
+        },
+        "feasible": {
+          "default": true,
+          "title": "Feasible",
+          "type": "boolean"
+        },
+        "infeasible_reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Infeasible Reasons",
+          "type": "array"
         },
         "multipliers": {
           "additionalProperties": {
@@ -811,7 +1015,7 @@
           "default": null,
           "title": "Effort Days"
         },
-        "cost_jpy": {
+        "migration_cost_jpy": {
           "anyOf": [
             {
               "type": "integer"
@@ -821,7 +1025,7 @@
             }
           ],
           "default": null,
-          "title": "Cost Jpy"
+          "title": "Migration Cost Jpy"
         },
         "duration_months": {
           "anyOf": [
@@ -846,6 +1050,18 @@
           ],
           "default": null,
           "title": "Team Size"
+        },
+        "cutover_downtime_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cutover Downtime Hours"
         },
         "risk_score": {
           "anyOf": [
@@ -879,41 +1095,27 @@
           "title": "Risk Components",
           "type": "array"
         },
-        "long_term_value": {
+        "value": {
           "anyOf": [
             {
-              "type": "number"
+              "$ref": "#/$defs/ValueBreakdown"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Long Term Value"
+          "default": null
         },
-        "debt_reduction": {
+        "tco": {
           "anyOf": [
             {
-              "type": "number"
+              "$ref": "#/$defs/Tco"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Debt Reduction"
-        },
-        "burden": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Burden"
+          "default": null
         }
       },
       "required": [
@@ -921,6 +1123,242 @@
         "eligible"
       ],
       "title": "StrategyOption",
+      "type": "object"
+    },
+    "Tco": {
+      "description": "tco = migration + sum over years (run + maintenance); all whole yen, so it reconstructs exactly.",
+      "properties": {
+        "horizon_years": {
+          "title": "Horizon Years",
+          "type": "integer"
+        },
+        "discount_rate": {
+          "title": "Discount Rate",
+          "type": "number"
+        },
+        "baseline_maintenance_jpy_per_year": {
+          "title": "Baseline Maintenance Jpy Per Year",
+          "type": "number"
+        },
+        "baseline_run_jpy_per_year": {
+          "title": "Baseline Run Jpy Per Year",
+          "type": "number"
+        },
+        "yearly": {
+          "items": {
+            "$ref": "#/$defs/CashFlowYear"
+          },
+          "title": "Yearly",
+          "type": "array"
+        },
+        "migration_total_jpy": {
+          "title": "Migration Total Jpy",
+          "type": "integer"
+        },
+        "run_total_jpy": {
+          "title": "Run Total Jpy",
+          "type": "integer"
+        },
+        "maintenance_total_jpy": {
+          "title": "Maintenance Total Jpy",
+          "type": "integer"
+        },
+        "tco_jpy": {
+          "title": "Tco Jpy",
+          "type": "integer"
+        },
+        "npv_cost_jpy": {
+          "title": "Npv Cost Jpy",
+          "type": "integer"
+        },
+        "savings_vs_retain_jpy": {
+          "title": "Savings Vs Retain Jpy",
+          "type": "integer"
+        },
+        "npv_vs_retain_jpy": {
+          "title": "Npv Vs Retain Jpy",
+          "type": "integer"
+        },
+        "payback_year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Payback Year"
+        }
+      },
+      "required": [
+        "horizon_years",
+        "discount_rate",
+        "baseline_maintenance_jpy_per_year",
+        "baseline_run_jpy_per_year",
+        "yearly",
+        "migration_total_jpy",
+        "run_total_jpy",
+        "maintenance_total_jpy",
+        "tco_jpy",
+        "npv_cost_jpy",
+        "savings_vs_retain_jpy",
+        "npv_vs_retain_jpy",
+        "payback_year"
+      ],
+      "title": "Tco",
+      "type": "object"
+    },
+    "ValueBreakdown": {
+      "description": "value = min(100, debt_reduction x burden x criticality_weight x objective_fit), rounded to 4 decimals.",
+      "properties": {
+        "debt_reduction": {
+          "title": "Debt Reduction",
+          "type": "number"
+        },
+        "burden": {
+          "title": "Burden",
+          "type": "number"
+        },
+        "criticality": {
+          "title": "Criticality",
+          "type": "integer"
+        },
+        "criticality_weight": {
+          "title": "Criticality Weight",
+          "type": "number"
+        },
+        "objective_fit": {
+          "title": "Objective Fit",
+          "type": "number"
+        },
+        "objectives": {
+          "items": {
+            "$ref": "#/$defs/ObjectiveContribution"
+          },
+          "title": "Objectives",
+          "type": "array"
+        },
+        "uncapped": {
+          "title": "Uncapped",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "debt_reduction",
+        "burden",
+        "criticality",
+        "criticality_weight",
+        "objective_fit",
+        "objectives",
+        "uncapped",
+        "value"
+      ],
+      "title": "ValueBreakdown",
+      "type": "object"
+    },
+    "WorkPackageReport": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "classes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Classes",
+          "type": "array"
+        },
+        "cycle_modules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Cycle Modules",
+          "type": "array"
+        },
+        "loc": {
+          "title": "Loc",
+          "type": "integer"
+        },
+        "kloc": {
+          "title": "Kloc",
+          "type": "number"
+        },
+        "health": {
+          "$ref": "#/$defs/ModuleHealth"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "inbound_references": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Inbound References",
+          "type": "object"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/StrategyOption"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "choices": {
+          "additionalProperties": {
+            "$ref": "#/$defs/StrategyChoice"
+          },
+          "title": "Choices",
+          "type": "object"
+        },
+        "sensitivity": {
+          "items": {
+            "$ref": "#/$defs/Flip"
+          },
+          "title": "Sensitivity",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "module",
+        "kind",
+        "name",
+        "classes",
+        "cycle_modules",
+        "loc",
+        "kloc",
+        "health",
+        "confidence",
+        "inbound_references",
+        "options",
+        "choices",
+        "sensitivity"
+      ],
+      "title": "WorkPackageReport",
       "type": "object"
     }
   },
@@ -933,11 +1371,23 @@
       "title": "Assumptions",
       "type": "object"
     },
+    "scenario": {
+      "additionalProperties": true,
+      "title": "Scenario",
+      "type": "object"
+    },
     "modules": {
       "additionalProperties": {
         "$ref": "#/$defs/ModuleReport"
       },
       "title": "Modules",
+      "type": "object"
+    },
+    "work_packages": {
+      "additionalProperties": {
+        "$ref": "#/$defs/WorkPackageReport"
+      },
+      "title": "Work Packages",
       "type": "object"
     },
     "hotspots": {
@@ -953,14 +1403,20 @@
       },
       "title": "Estate",
       "type": "object"
+    },
+    "estate_findings": {
+      "$ref": "#/$defs/OutdatedDependencies"
     }
   },
   "required": [
     "meta",
     "assumptions",
+    "scenario",
     "modules",
+    "work_packages",
     "hotspots",
-    "estate"
+    "estate",
+    "estate_findings"
   ],
   "title": "Recommendation",
   "type": "object"

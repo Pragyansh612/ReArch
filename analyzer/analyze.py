@@ -33,6 +33,7 @@ from analyzer.schema import (
 )
 from analyzer.services import parse_services
 from analyzer.sources import discover, find_dependency_files
+from analyzer.testdef import parse_testdef
 
 ANALYZER_ID = "rearch-analyzer 0.1.0"
 
@@ -148,6 +149,29 @@ def _groovy_tests(paths: list[Path], root: Path, cfg: AnalysisConfig) -> Counter
     return per_module
 
 
+def _testdef(files: list[Path], root: Path, cfg: AnalysisConfig,
+             coverage: dict[str, Coverage]) -> tuple[dict[str, tuple[int, int]], list[str]]:
+    """Per module: (suite files, test cases). A case is attributed to the module of its `class-name` package;
+    cases without one go to every module of the file's component."""
+    suites: dict[str, set[str]] = {}
+    cases: Counter[str] = Counter()
+    listed: list[str] = []
+    for path in files:
+        parsed = parse_testdef(path, cfg.testdef_data_load_elements)
+        if parsed is None:
+            continue
+        rel = _rel(path, root)
+        listed.append(rel)
+        component = cov.component_of(rel, cfg.coverage.component_dir_markers)
+        for case in parsed:
+            owners = ([g.module_of(case.class_name.rpartition(".")[0], cfg.module_roots)] if case.class_name else
+                      [m for m, c in coverage.items() if c.component == component])
+            for module in owners:
+                cases[module] += 1
+                suites.setdefault(module, set()).add(rel)
+    return {m: (len(suites[m]), cases[m]) for m in suites}, listed
+
+
 def _dependencies(root: Path, cfg: AnalysisConfig) -> list[Dependency]:
     poms, tomls = find_dependency_files(root, cfg)
     out: list[Dependency] = []
@@ -163,7 +187,7 @@ def _dependencies(root: Path, cfg: AnalysisConfig) -> list[Dependency]:
 def _module_metrics(classes: dict[str, g.ClassInfo], metrics: dict[str, ClassMetrics],
                     graph: dict[str, set[str]], markers: list[LegacyMarker],
                     tests: dict[str, tuple[list[str], int]], groovy_tests: Counter[str],
-                    coverage: dict[str, Coverage]) -> dict[str, ModuleMetrics]:
+                    coverage: dict[str, Coverage], testdef: dict[str, tuple[int, int]]) -> dict[str, ModuleMetrics]:
     edges = g.module_edges(classes, graph)
     out: dict[str, ModuleMetrics] = {}
     for name in sorted({c.module for c in classes.values()}):
@@ -174,8 +198,9 @@ def _module_metrics(classes: dict[str, g.ClassInfo], metrics: dict[str, ClassMet
         out[name] = ModuleMetrics(
             name=name, classes=members, class_count=len(members), loc=sum(metrics[f].loc for f in members),
             depends_on_modules=dict(sorted(edges.get(name, {}).items())), module_fan_out=len(edges.get(name, {})),
-            module_fan_in=sum(1 for other in edges.values() if name in other), has_tests=bool(test_names) or groovy_tests[name] > 0,
-            test_classes=sorted(test_names), groovy_test_files=groovy_tests[name], test_method_count=test_methods, javax_imports=javax,
+            module_fan_in=sum(1 for other in edges.values() if name in other), has_tests=bool(test_names) or groovy_tests[name] > 0 or testdef.get(name, (0, 0))[1] > 0,
+            test_classes=sorted(test_names), groovy_test_files=groovy_tests[name], test_method_count=test_methods,
+            testdef_suite_files=testdef.get(name, (0, 0))[0], testdef_test_cases=testdef.get(name, (0, 0))[1], javax_imports=javax,
             jakarta_imports=jakarta, namespace_mix=javax > 0 and jakarta > 0, coverage=coverage[name])
     return out
 
@@ -215,8 +240,9 @@ def analyze(repo: Path, scope: list[str] | None = None, cfg: AnalysisConfig | No
     markers = _markers(classes, cfg)
     tests = _tests(sources.test_java, cfg)
     coverage = cov.module_coverage(classes, mappings, sources.groovy, repo, cfg)
+    testdef, testdef_files = _testdef(sources.testdef_xml, repo, cfg, coverage)
     modules = _module_metrics(classes, metrics, graph, markers, tests,
-                              _groovy_tests(sources.groovy, repo, cfg), coverage)
+                              _groovy_tests(sources.groovy, repo, cfg), coverage, testdef)
     mod_graph = {m: set(v.depends_on_modules) for m, v in modules.items()}
     cycles = Cycles(module_cycles=g.strongly_connected(list(modules), mod_graph),
                     class_cycles=g.strongly_connected(list(classes), graph))
@@ -239,5 +265,5 @@ def analyze(repo: Path, scope: list[str] | None = None, cfg: AnalysisConfig | No
         legacy_markers=markers, dependencies=dependencies, service_mappings=mappings, controller_mappings=controllers,
         unanalyzed_files=Unanalyzed(groovy_count=len(groovy), groovy_files=groovy, service_xml_files=service_files,
                                     service_engine_counts=dict(sorted(Counter(m.engine for m in mappings).items())),
-                                    controller_xml_files=controller_files, controller_event_counts=controller_counts),
+                                    controller_xml_files=controller_files, testdef_files=testdef_files, controller_event_counts=controller_counts),
         findings=build_findings(metrics, infos, modules, cycles, dependencies, mappings, controllers, cfg))

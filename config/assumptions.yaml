@@ -33,19 +33,23 @@ analysis:
   test_java_dir: src/test/java
   test_groovy_dir: src/test/groovy   # Groovy tests are counted as test evidence, never parsed
   services_dir_name: servicedef        # directories holding OFBiz service definitions
+  testdef_dir_name: testdef            # OFBiz test suites: <test-suite><test-case>...
+  testdef_data_load_elements: [entity-xml]   # a test-case holding only these loads data; it is not a test
   skip_dirs: [.git, node_modules, build, target, .gradle, out]
   date_based_version_min: 1900   # a leading number >= this is treated as a calendar version, not a major
 
   # Analysis coverage: how much of a component's logic is Java (analysed) versus Groovy / XML / generated
   # (not analysed). Share = Java service definitions / implemented service definitions
-  # (engines `interface` and `group` implement nothing and are excluded from the denominator).
+  # (engines `interface`, `group` and `entity-auto` implement no custom logic and are excluded from the denominator).
   # A module belongs to the component directory that holds most of its classes.
   coverage:
     high_min_java_share: 0.60     # >= 0.60 -> confidence "high"
     medium_min_java_share: 0.30   # >= 0.30 -> "medium", otherwise "low"
     # a file's component is the path before the first of these directories (service defs, controllers, Groovy...)
     component_dir_markers: [src, servicedef, webapp, testdef, config, widget, entitydef, groovyScripts, script]
-    non_implementing_engines: [interface, group]
+    # `entity-auto` is generated CRUD (declarative, no hidden custom logic), so it is excluded from the denominator too;
+    # its count is still reported (`entity_auto_defs`).
+    non_implementing_engines: [interface, group, entity-auto]
 
   # Approximate cyclomatic complexity of a class: bodies + decision points.
   complexity_bands:
@@ -104,12 +108,14 @@ analysis:
 dependency_snapshot_file: dependency_snapshot.yaml   # relative to this file
 
 # ---------------------------------------------------------------------------
-# Phase 3: scoring and strategies (all ILLUSTRATIVE, see the banner at the top of this file).
+# Phase 3 / 3.5: scoring and strategies (ALL ILLUSTRATIVE, see the banner at the top of this file).
+# The client's constraints, objectives and criticality overrides live in config/client_scenario.yaml.
 # ---------------------------------------------------------------------------
 engine:
-  strategies: [rehost, replatform, refactor, rearchitect, retire]   # also the tie-break order
+  # `retain` (do nothing) is always an option and the baseline for TCO, payback and NPV. Order = tie-break order.
+  strategies: [retain, rehost, replatform, refactor, rearchitect, retire]
 
-  # --- effort -> cost -> duration -------------------------------------------------------------------
+  # --- effort -> cost -> duration (migration) ---------------------------------------------------------
   # effort_days = KLOC x base_days_per_kloc[strategy] x complexity_multiplier x (1 + test_overhead)
   #               x coverage_uncertainty_buffer   (+ a safety-net-tests line for rearchitect without tests)
   working_days_per_month: 20
@@ -119,10 +125,10 @@ engine:
     refactor: 6
     rearchitect: 8
     retire: 2
-  complexity_multiplier:       # multiplier = 1 + (max - 1) x module complexity percentile (0..1) x sensitivity
-    max: 1.6                   #   ILLUSTRATIVE: most complex module costs 60% more at full sensitivity
+  complexity_multiplier:       # multiplier = 1 + (max - 1) x unit complexity percentile (0..1) x sensitivity
+    max: 1.6
     sensitivity: {rehost: 0.1, replatform: 0.5, refactor: 1.0, rearchitect: 1.0, retire: 0.1}
-  test_overhead:               # extra share of effort spent on testing; grows when the module has no tests
+  test_overhead:               # extra share of effort spent on testing; grows when there is little test evidence
     base: {rehost: 0.10, replatform: 0.20, refactor: 0.35, rearchitect: 0.40, retire: 0.05}
     untested_extra: 1.0        # test_overhead = base x (1 + untested_extra x test_gap)   (test_gap 0..1)
   coverage_uncertainty_buffer: # multiplies effort when the analyzer can see little of the logic
@@ -131,60 +137,103 @@ engine:
     low: 1.35
   safety_net_days_per_kloc: 4.0   # rearchitect without test evidence: tests written first (own effort line)
 
-  # --- risk (0-100, higher = riskier) ----------------------------------------------------------------
+  # --- total cost of ownership over the client's planning horizon (horizon is in the scenario file) -------
+  # tco = migration_cost + sum over years (run_cost + maintenance_cost)
+  # baseline maintenance (per year) = KLOC x days x (1 + penalty x (1 - health/100)) x daily_rate: worse health costs more
+  # after migration, maintenance = baseline x (1 - long_term_value.debt_reduction[strategy])   (residual debt stays)
+  # after migration, run cost = baseline run x residual_run_cost[strategy]   (hosting differs by strategy)
+  # migration spend is spread evenly over the migration duration; savings start when the migration ends.
+  tco:
+    discount_rate: 0.04                      # ILLUSTRATIVE. Calibrate: client's cost of capital.
+    maintenance_days_per_kloc_year: 6.0      # ILLUSTRATIVE. Calibrate: client's own maintenance time records.
+    debt_maintenance_penalty: 1.5
+    run_cost_jpy_per_kloc_year: 150000       # ILLUSTRATIVE. Calibrate: client's hosting invoices.
+    residual_run_cost: {retain: 1.0, rehost: 0.85, replatform: 0.70, refactor: 0.95, rearchitect: 0.60, retire: 0.0}
+
+  # --- delivery risk (0-100, higher = riskier) ----------------------------------------------------------------
   # exposure = sum(weight x 0..1 measure) over the factors below (weights sum to 1), so exposure is 0..1
   # risk = min(100, base_risk[strategy] x (1 + exposure_gain x exposure))
-  # i.e. a strategy's inherent riskiness, scaled up to (1 + gain)x when the module is fragile, critical, untested,
-  # tangled in cycles and poorly understood. Base values are chosen so base x (1 + gain) stays below 100.
+  # retain has no change risk, but leaving a fragile, critical, untested unit alone is risky:
+  #   retain risk = min(100, retain.risk_scale x 100 x exposure)
   risk:
     base: {rehost: 8, replatform: 18, refactor: 30, rearchitect: 48, retire: 12}   # ILLUSTRATIVE
     exposure_gain: 1.0
     factor_weights: {health: 0.30, criticality: 0.25, tests: 0.20, cycles: 0.10, confidence: 0.15}
     confidence_gap: {high: 0.0, medium: 0.5, low: 1.0}
+  retain:
+    risk_scale: 0.5
 
-  # --- long-term value (0-100, higher = better): debt and maintenance burden removed -------------------
-  # value = debt_reduction[strategy] x burden; burden = debt_weight x (100 - health)
-  #                                                     + (1 - debt_weight) x maintenance_points
+  # --- cutover downtime (hours), checked against the client's maximum in the scenario ----------------------
+  # Big-bang strategies move a whole application in one window (freeze, data sync, switch); incremental ones
+  # (strangler) cut over route by route in short windows. ILLUSTRATIVE: calibrate from comparable cutovers.
+  cutover_downtime_hours: {retain: 0, rehost: 6, replatform: 10, refactor: 1, rearchitect: 2, retire: 0.5}
+
+  # --- long-term value (0-100, higher = better) -----------------------------------------------------------------
+  # value = min(100, debt_reduction[strategy] x burden x criticality_weight[criticality] x objective_fit[strategy])
+  #   burden = debt_weight x (100 - health) + (1 - debt_weight) x maintenance_points
+  #   objective_fit[strategy] = sum over the client's objectives of (objective weight x objective_effect[strategy][objective])
   long_term_value:
     debt_reduction: {rehost: 0.05, replatform: 0.25, refactor: 0.55, rearchitect: 0.85, retire: 1.0}
     debt_weight: 0.6
-    maintenance_kloc_cap: 30   # maintenance_points = min(100, 100 x KLOC / cap): bigger modules cost more to keep
+    maintenance_kloc_cap: 30   # maintenance_points = min(100, 100 x KLOC / cap): bigger units cost more to keep
+    criticality_weight: {1: 0.6, 2: 1.0, 3: 1.4}   # ILLUSTRATIVE: improving a critical unit is worth more
+    # Which of the client's objectives a strategy can move, as the share of the gap it can close in principle (0..1).
+    # E.g. rehost changes where the system runs (infra cost) but not how fast the code can be changed.
+    objective_effect:
+      retain:      {maintenance_cost: 0.0, change_lead_time: 0.0, expert_dependency: 0.0, run_cost: 0.0}
+      rehost:      {maintenance_cost: 0.05, change_lead_time: 0.0, expert_dependency: 0.0, run_cost: 0.6}
+      replatform:  {maintenance_cost: 0.20, change_lead_time: 0.1, expert_dependency: 0.1, run_cost: 0.8}
+      refactor:    {maintenance_cost: 0.60, change_lead_time: 0.6, expert_dependency: 0.5, run_cost: 0.1}
+      rearchitect: {maintenance_cost: 0.80, change_lead_time: 0.9, expert_dependency: 0.8, run_cost: 0.5}
+      retire:      {maintenance_cost: 1.0, change_lead_time: 1.0, expert_dependency: 1.0, run_cost: 1.0}
 
-  # --- priorities: weights over the four criteria, each preset sums to 1 --------------------------------
+  # --- priorities: weights over the four criteria, each preset sums to 1 ---------------------------------------
   priorities:
-    default: balanced
+    default: balanced          # the scenario's own priorities (client_scenario) are added as a further profile
     presets:
       minimize_cost:    {cost: 0.60, risk: 0.15, speed: 0.15, long_term_value: 0.10}
       minimize_risk:    {cost: 0.10, risk: 0.60, speed: 0.10, long_term_value: 0.20}
       speed_to_market:  {cost: 0.20, risk: 0.10, speed: 0.60, long_term_value: 0.10}
       long_term_value:  {cost: 0.10, risk: 0.15, speed: 0.05, long_term_value: 0.70}
       balanced:         {cost: 0.25, risk: 0.25, speed: 0.25, long_term_value: 0.25}
-  # --- scoring scales: how raw numbers become 0..1 "goodness" (absolute, NOT relative to the other options) ----
-  # cost goodness  = max(0, 1 - cost_jpy / cost_ceiling_jpy)
+
+  # --- scoring scales: how raw numbers become 0..1 "goodness" (absolute, NOT relative to the other options) -----
+  # cost goodness  = max(0, 1 - tco / (cost_ratio_ceiling x retain_tco))   [cost = 5-year TCO, scored against doing nothing]
   # speed goodness = max(0, 1 - duration_months / duration_ceiling_months)
   # risk goodness  = 1 - risk / 100          value goodness = value / 100
-  # Absolute scales keep module differences visible (a small healthy module and a huge fragile one do not look alike)
-  # and let the daily rate matter. ILLUSTRATIVE ceilings: a real engagement would use the client's budget authority
-  # for one module-level programme and their acceptable delivery window.
   scoring:
-    cost_ceiling_jpy: 200000000
+    cost_ratio_ceiling: 3.0        # an option whose TCO is 3x the do-nothing TCO scores 0 on cost
     duration_ceiling_months: 24
-  close_call_margin: 5.0       # score points (0-100) between best and runner-up below which we flag a close call
+  close_call_margin: 5.0           # score points (0-100) between best and runner-up below which we flag a close call
 
-  # --- technical health (0-100, higher = healthier) ------------------------------------------------------
+  # --- work packages: the units that get a strategy (a module can mix strategies) ----------------------------
+  # (a) each class cycle (strongly connected component) is one package per module it touches
+  # (b) each extreme god class not in a cycle, grown with its satellites: an unassigned class in the same module joins
+  #     when at least `satellite_min_share` of its in-module neighbours are already in the package
+  # (c) the remainder of each module
+  work_packages:
+    satellite_min_share: 0.5
+
+  # --- technical health (0-100, higher = healthier) ------------------------------------------------------------
   # health = 100 - sum of (100 x weight x normalized), each normalized 0 (good) .. 1 (bad)
+  # Outdated dependencies are NOT a component: they are estate-wide and cannot tell units apart, so they are an
+  # estate-level finding. Exception: a module with its OWN build file gets the component with `own_build_file_weight`
+  # and the other weights are scaled by (1 - that weight).
   health:
-    weights:                   # must sum to 1
-      size: 0.10
-      complexity: 0.20
-      coupling: 0.15
-      cycles: 0.10
-      test_evidence: 0.20
-      db_coupling: 0.10
-      legacy_markers: 0.05
-      outdated_dependencies: 0.10
-    test_target_per_kloc: 5.0      # ILLUSTRATIVE: tests (Java @Test + Groovy test files) per KLOC that earns full credit
-    db_calls_per_kloc_cap: 15.0    # ILLUSTRATIVE: database calls per KLOC at which the db_coupling component is maxed
+    weights:                       # must sum to 1 (the former weights divided by 0.9, rounded)
+      size: 0.11
+      complexity: 0.22
+      coupling: 0.17
+      cycles: 0.11
+      test_evidence: 0.22
+      db_coupling: 0.11
+      legacy_markers: 0.06
+    own_build_file_weight: 0.10
+    test_target_per_kloc: 5.0      # ILLUSTRATIVE: tests (Java @Test + max(Groovy test files, testdef cases)) per KLOC for full credit
+    # db_coupling = min(1, ln(1 + calls per KLOC) / ln(1 + reference)). Call counts are heavy-tailed, so a log scale
+    # keeps differences visible; the reference (calls/KLOC at which the component maxes out) is deliberately high:
+    # one database call every ten code lines.
+    db_calls_per_kloc_reference: 100.0
   hotspots:
     top_n: 15
     weights:                       # class-level score = sum(weight x 0..100 value); sums to 1
@@ -195,7 +244,7 @@ engine:
       db_density: 0.10
       in_cycle: 0.10
 
-  # --- business criticality (1-3): a proposal the consultant confirms ------------------------------------
+  # --- business criticality (1-3): a proposal; the client scenario's overrides win ------------------------------
   # score = w_in x (module share of estate inbound references) + w_write x (module share of estate data writes)
   criticality:
     inbound_weight: 0.6

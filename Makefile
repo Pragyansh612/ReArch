@@ -36,7 +36,7 @@ analyze:
 crosscheck:
 	$(PY) scripts/crosscheck.py "$(REPO)" out/$(NAME).json $(if $(SCOPE),--scope $(SCOPE))
 
-# make recommend NAME=<analysis> [PROFILE=<preset|cost=..,risk=..,speed=..,long_term_value=..>] [OVERRIDES=file]
+# make recommend NAME=<analysis> [PROFILE=<preset|client_scenario|cost=..,risk=..,speed=..,long_term_value=..>] [SCENARIO=file]
 recommend:
 	@test -n "$(NAME)" || (echo "usage: make recommend NAME=<analysis name, e.g. ofbiz> [PROFILE=...]"; exit 1)
-	$(PY) -m engine out/$(NAME).json $(if $(PROFILE),--profile "$(PROFILE)") $(if $(OVERRIDES),--overrides $(OVERRIDES))
+	$(PY) -m engine out/$(NAME).json $(if $(PROFILE),--profile "$(PROFILE)") $(if $(SCENARIO),--scenario $(SCENARIO))

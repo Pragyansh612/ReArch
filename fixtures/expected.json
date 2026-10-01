@@ -42,12 +42,15 @@
           "java": 7,
           "simple": 2
         },
-        "implemented_defs": 13,
+        "implemented_defs": 10,
         "java_defs": 7,
-        "java_share": 0.5385,
+        "entity_auto_defs": 3,
+        "java_share": 0.7,
         "groovy_logic_files": 1,
-        "confidence": "medium"
+        "confidence": "high"
       },
+      "testdef_suite_files": 1,
+      "testdef_test_cases": 2,
       "javax_imports": 0,
       "jakarta_imports": 0,
       "namespace_mix": false
@@ -77,12 +80,15 @@
           "java": 7,
           "simple": 2
         },
-        "implemented_defs": 13,
+        "implemented_defs": 10,
         "java_defs": 7,
-        "java_share": 0.5385,
+        "entity_auto_defs": 3,
+        "java_share": 0.7,
         "groovy_logic_files": 1,
-        "confidence": "medium"
+        "confidence": "high"
       },
+      "testdef_suite_files": 0,
+      "testdef_test_cases": 0,
       "javax_imports": 0,
       "jakarta_imports": 0,
       "namespace_mix": false
@@ -118,12 +124,15 @@
           "java": 7,
           "simple": 2
         },
-        "implemented_defs": 13,
+        "implemented_defs": 10,
         "java_defs": 7,
-        "java_share": 0.5385,
+        "entity_auto_defs": 3,
+        "java_share": 0.7,
         "groovy_logic_files": 1,
-        "confidence": "medium"
+        "confidence": "high"
       },
+      "testdef_suite_files": 0,
+      "testdef_test_cases": 0,
       "javax_imports": 1,
       "jakarta_imports": 0,
       "namespace_mix": false
@@ -158,12 +167,15 @@
           "java": 7,
           "simple": 2
         },
-        "implemented_defs": 13,
+        "implemented_defs": 10,
         "java_defs": 7,
-        "java_share": 0.5385,
+        "entity_auto_defs": 3,
+        "java_share": 0.7,
         "groovy_logic_files": 1,
-        "confidence": "medium"
+        "confidence": "high"
       },
+      "testdef_suite_files": 0,
+      "testdef_test_cases": 0,
       "javax_imports": 1,
       "jakarta_imports": 1,
       "namespace_mix": true
@@ -2008,6 +2020,9 @@
     ],
     "controller_xml_files": [
       "src/main/webapp/WEB-INF/controller.xml"
+    ],
+    "testdef_files": [
+      "testdef/BillingTests.xml"
     ],
     "controller_event_counts": {
       "groovy": 1,

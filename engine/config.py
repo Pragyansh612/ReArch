@@ -10,10 +10,10 @@ from pydantic import BaseModel, model_validator
 
 from analyzer.config import DEFAULT_CONFIG
 
-Strategy = Literal["rehost", "replatform", "refactor", "rearchitect", "retire"]
+Strategy = Literal["retain", "rehost", "replatform", "refactor", "rearchitect", "retire"]
 Criterion = Literal["cost", "risk", "speed", "long_term_value"]
 CRITERIA: tuple[Criterion, ...] = ("cost", "risk", "speed", "long_term_value")
-DEFAULT_OVERRIDES = DEFAULT_CONFIG.parent / "criticality_overrides.yaml"
+DEFAULT_SCENARIO = DEFAULT_CONFIG.parent / "client_scenario.yaml"
 _TOLERANCE = 1e-9
 
 
@@ -63,6 +63,24 @@ class ValueRule(BaseModel):
     debt_reduction: dict[Strategy, float]
     debt_weight: float
     maintenance_kloc_cap: float
+    criticality_weight: dict[int, float]
+    objective_effect: dict[Strategy, dict[str, float]]
+
+
+class TcoRule(BaseModel):
+    discount_rate: float
+    maintenance_days_per_kloc_year: float
+    debt_maintenance_penalty: float
+    run_cost_jpy_per_kloc_year: float
+    residual_run_cost: dict[Strategy, float]
+
+
+class RetainRule(BaseModel):
+    risk_scale: float
+
+
+class WorkPackageRule(BaseModel):
+    satellite_min_share: float
 
 
 class PriorityConfig(BaseModel):
@@ -72,8 +90,9 @@ class PriorityConfig(BaseModel):
 
 class HealthRule(BaseModel):
     weights: dict[str, float]
+    own_build_file_weight: float
     test_target_per_kloc: float
-    db_calls_per_kloc_cap: float
+    db_calls_per_kloc_reference: float
 
     @model_validator(mode="after")
     def _sum(self) -> HealthRule:
@@ -101,7 +120,7 @@ class CriticalityRule(BaseModel):
 
 
 class ScoringRule(BaseModel):
-    cost_ceiling_jpy: float
+    cost_ratio_ceiling: float
     duration_ceiling_months: float
 
 
@@ -121,6 +140,10 @@ class EngineConfig(BaseModel):
     test_overhead: TestOverheadRule
     coverage_uncertainty_buffer: dict[str, float]
     safety_net_days_per_kloc: float
+    tco: TcoRule
+    retain: RetainRule
+    cutover_downtime_hours: dict[Strategy, float]
+    work_packages: WorkPackageRule
     risk: RiskRule
     long_term_value: ValueRule
     priorities: PriorityConfig
@@ -138,16 +161,15 @@ def load_engine_config(path: Path = DEFAULT_CONFIG) -> EngineConfig:
                         base_days_per_kloc=raw["base_days_per_kloc"], **raw["engine"])
 
 
-def parse_profile(text: str, cfg: EngineConfig) -> tuple[str, Priorities]:
-    """A preset name, or custom weights like `cost=0.4,risk=0.3,speed=0.2,long_term_value=0.1`."""
-    if text in cfg.priorities.presets:
-        return text, cfg.priorities.presets[text]
+def parse_profile(text: str, known: dict[str, Priorities]) -> tuple[str, Priorities]:
+    """A known profile name (presets plus the client scenario), or custom weights `cost=0.4,risk=0.3,...`."""
+    if text in known:
+        return text, known[text]
     try:
         pairs = dict(item.split("=") for item in text.split(","))
         return "custom", Priorities(**{k.strip(): float(v) for k, v in pairs.items()})
     except (ValueError, TypeError) as exc:
-        names = ", ".join(cfg.priorities.presets)
-        raise ValueError(f"profile must be one of [{names}] or cost=..,risk=..,speed=..,long_term_value=.. "
+        raise ValueError(f"profile must be one of [{', '.join(known)}] or cost=..,risk=..,speed=..,long_term_value=.. "
                          f"(sum 1): {exc}") from exc
 
 
@@ -163,11 +185,3 @@ class Override(BaseModel):
         if len(self.reason.strip()) < 10:
             raise ValueError(f"override for {self.module}: a written reason is required")
         return self
-
-
-def load_overrides(analysis_name: str, path: Path = DEFAULT_OVERRIDES) -> dict[str, Override]:
-    if not path.exists():
-        return {}
-    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    items = (raw.get("analyses") or {}).get(analysis_name) or []
-    return {o.module: o for o in (Override(**item) for item in items)}

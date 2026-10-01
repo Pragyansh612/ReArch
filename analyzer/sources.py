@@ -17,6 +17,7 @@ class SourceSet:
     groovy: list[Path] = field(default_factory=list)
     service_xml_candidates: list[Path] = field(default_factory=list)
     controller_xml: list[Path] = field(default_factory=list)
+    testdef_xml: list[Path] = field(default_factory=list)
 
 
 def _walk(base: Path, skip: set[str]) -> list[Path]:
@@ -47,6 +48,8 @@ def discover(root: Path, scope: list[str], cfg: AnalysisConfig) -> SourceSet:
                 out.groovy.append(path)
             elif path.suffix == ".xml" and path.parent.name == cfg.services_dir_name:
                 out.service_xml_candidates.append(path)
+            elif path.suffix == ".xml" and path.parent.name == cfg.testdef_dir_name:
+                out.testdef_xml.append(path)
             elif path.name == "controller.xml":
                 out.controller_xml.append(path)
     return out

@@ -219,14 +219,15 @@ def test_coverage_per_module(result: AnalysisResult, expected: dict[str, Any]) -
     for name, want in expected["modules"].items():
         got = result.modules[name].coverage.model_dump()
         assert got == want["coverage"], name
-    assert result.modules["order"].coverage.confidence == "medium"  # 7 of 13 implemented definitions are Java
+    assert result.modules["order"].coverage.confidence == "high"  # 7 of 10 implemented definitions are Java
+    assert result.modules["order"].coverage.entity_auto_defs == 3  # reported, but not in the denominator
 
 
 def test_coverage_confidence_thresholds_come_from_config() -> None:
     cfg = load_config()
-    cfg.coverage.high_min_java_share = 0.5
-    assert analyze(FIXTURE, cfg=cfg).modules["order"].coverage.confidence == "high"
-    cfg.coverage.high_min_java_share, cfg.coverage.medium_min_java_share = 0.9, 0.6
+    cfg.coverage.high_min_java_share = 0.9
+    assert analyze(FIXTURE, cfg=cfg).modules["order"].coverage.confidence == "medium"
+    cfg.coverage.high_min_java_share, cfg.coverage.medium_min_java_share = 0.95, 0.8
     assert analyze(FIXTURE, cfg=cfg).modules["order"].coverage.confidence == "low"
 
 
@@ -236,6 +237,7 @@ def test_groovy_is_counted_not_parsed(result: AnalysisResult, expected: dict[str
     assert result.unanalyzed_files.groovy_files == want["groovy_files"]
     assert result.unanalyzed_files.service_xml_files == want["service_xml_files"]
     assert result.unanalyzed_files.controller_xml_files == want["controller_xml_files"]
+    assert result.unanalyzed_files.testdef_files == want["testdef_files"]
     assert result.unanalyzed_files.controller_event_counts == want["controller_event_counts"]
     assert result.unanalyzed_files.service_engine_counts == want["service_engine_counts"]
     assert result.unanalyzed_files.report_status == "not_analyzed"
@@ -293,3 +295,12 @@ def test_extreme_threshold_comes_from_config() -> None:
 
 def test_result_roundtrips_through_the_schema(result: AnalysisResult) -> None:
     assert AnalysisResult.model_validate_json(result.model_dump_json()) == result
+
+
+def test_testdef_cases_are_test_evidence_reported_separately(result: AnalysisResult, expected: dict[str, Any]) -> None:
+    for name, want in expected["modules"].items():
+        got = result.modules[name]
+        assert (got.testdef_suite_files, got.testdef_test_cases) == (want["testdef_suite_files"], want["testdef_test_cases"])
+    billing = result.modules["billing"]
+    assert billing.testdef_test_cases == 2  # the entity-xml data-load case is not a test
+    assert billing.test_classes and billing.groovy_test_files == 0  # three separate evidence kinds

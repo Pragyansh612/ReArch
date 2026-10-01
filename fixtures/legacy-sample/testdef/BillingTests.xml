@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<test-suite suite-name="billingtests">
+    <test-case case-name="billing-data-load">
+        <entity-xml action="load" entity-xml-url="component://legacy/testdef/data/BillingTestData.xml"/>
+    </test-case>
+    <test-case case-name="invoice-test">
+        <jupiter-test-suite class-name="com.example.legacy.billing.InvoiceServiceTest"/>
+    </test-case>
+    <test-case case-name="payment-test">
+        <jupiter-test-suite class-name="com.example.legacy.billing.PaymentCalculatorTest"/>
+    </test-case>
+</test-suite>

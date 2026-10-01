@@ -194,8 +194,26 @@ conf = ("high" if share is None and not groovy_logic else "medium" if share is N
 for m in mods:
     mods[m]["coverage"] = dict(component="", service_defs_total=sum(engines.values()),
                                service_defs_by_engine=dict(sorted(engines.items())), implemented_defs=implemented,
-                               java_defs=engines["java"], java_share=share, groovy_logic_files=len(groovy_logic),
+                               java_defs=engines["java"], entity_auto_defs=engines["entity-auto"], java_share=share, groovy_logic_files=len(groovy_logic),
                                confidence=conf)
+
+# testdef: suites and the cases that run something (a case holding only entity-xml data loads is not a test)
+testdef = {m: dict(testdef_suite_files=0, testdef_test_cases=0) for m in mods}
+for tf in sorted((R / "testdef").glob("*.xml")):
+    root = ET.parse(tf).getroot()
+    hit_modules = set()
+    for case in root.findall("test-case"):
+        kids = [k for k in case if k.tag != "entity-xml"]
+        cn = next((k.get("class-name") for k in kids if k.get("class-name")), None)
+        if kids and cn:
+            module = cn.split(".")[3]
+            testdef[module]["testdef_test_cases"] += 1
+            hit_modules.add(module)
+    for module in hit_modules:
+        testdef[module]["testdef_suite_files"] += 1
+for m in mods:
+    mods[m].update(testdef[m])
+    mods[m]["has_tests"] = mods[m]["has_tests"] or testdef[m]["testdef_test_cases"] > 0
 
 # ---- DB coupling, markers --------------------------------------------------------------------------
 JD = re.compile(r"DriverManager\.getConnection\(|\.prepareStatement\(|\.createStatement\(")
@@ -311,6 +329,7 @@ out = dict(
     unanalyzed_files=dict(groovy_count=len(groovy_files), groovy_files=groovy_files,
                           service_xml_files=["src/main/resources/servicedef/services.xml"],
                           controller_xml_files=["src/main/webapp/WEB-INF/controller.xml"],
+                          testdef_files=["testdef/BillingTests.xml"],
                           controller_event_counts=dict(sorted(event_counts.items())),
                           service_engine_counts=dict(sorted(engines.items())), report_status="not_analyzed"))
 (ROOT / "fixtures" / "expected.json").write_text(json.dumps(out, indent=2) + "\n")

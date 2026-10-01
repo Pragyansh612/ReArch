@@ -66,6 +66,7 @@ def module_coverage(
         out[module] = Coverage(
             component=component, service_defs_total=sum(engines.values()),
             service_defs_by_engine=dict(sorted(engines.items())), implemented_defs=implemented, java_defs=java,
+            entity_auto_defs=engines.get("entity-auto", 0),
             java_share=share, groovy_logic_files=groovy_logic[component],
             confidence=_confidence(share, groovy_logic[component], rules))
     return out

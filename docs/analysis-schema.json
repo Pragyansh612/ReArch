@@ -211,6 +211,10 @@
           "title": "Java Defs",
           "type": "integer"
         },
+        "entity_auto_defs": {
+          "title": "Entity Auto Defs",
+          "type": "integer"
+        },
         "java_share": {
           "anyOf": [
             {
@@ -242,6 +246,7 @@
         "service_defs_by_engine",
         "implemented_defs",
         "java_defs",
+        "entity_auto_defs",
         "java_share",
         "groovy_logic_files",
         "confidence"
@@ -632,6 +637,14 @@
           "title": "Groovy Test Files",
           "type": "integer"
         },
+        "testdef_suite_files": {
+          "title": "Testdef Suite Files",
+          "type": "integer"
+        },
+        "testdef_test_cases": {
+          "title": "Testdef Test Cases",
+          "type": "integer"
+        },
         "test_method_count": {
           "title": "Test Method Count",
           "type": "integer"
@@ -663,6 +676,8 @@
         "has_tests",
         "test_classes",
         "groovy_test_files",
+        "testdef_suite_files",
+        "testdef_test_cases",
         "test_method_count",
         "javax_imports",
         "jakarta_imports",
@@ -877,6 +892,13 @@
           "title": "Controller Xml Files",
           "type": "array"
         },
+        "testdef_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Testdef Files",
+          "type": "array"
+        },
         "controller_event_counts": {
           "additionalProperties": {
             "type": "integer"
@@ -897,6 +919,7 @@
         "service_xml_files",
         "service_engine_counts",
         "controller_xml_files",
+        "testdef_files",
         "controller_event_counts"
       ],
       "title": "Unanalyzed",
