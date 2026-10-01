@@ -35,6 +35,10 @@
           "title": "Service Fan In",
           "type": "integer"
         },
+        "controller_fan_in": {
+          "title": "Controller Fan In",
+          "type": "integer"
+        },
         "used": {
           "title": "Used",
           "type": "boolean"
@@ -51,6 +55,31 @@
           ],
           "title": "Complexity Band",
           "type": "string"
+        },
+        "size_tier": {
+          "enum": [
+            "none",
+            "large",
+            "extreme"
+          ],
+          "title": "Size Tier",
+          "type": "string"
+        },
+        "loc_percentile": {
+          "title": "Loc Percentile",
+          "type": "number"
+        },
+        "complexity_percentile": {
+          "title": "Complexity Percentile",
+          "type": "number"
+        },
+        "fan_in_percentile": {
+          "title": "Fan In Percentile",
+          "type": "number"
+        },
+        "fan_out_percentile": {
+          "title": "Fan Out Percentile",
+          "type": "number"
         },
         "depends_on": {
           "items": {
@@ -76,13 +105,148 @@
         "fan_in",
         "fan_out",
         "service_fan_in",
+        "controller_fan_in",
         "used",
         "complexity",
         "complexity_band",
+        "size_tier",
+        "loc_percentile",
+        "complexity_percentile",
+        "fan_in_percentile",
+        "fan_out_percentile",
         "depends_on",
         "depended_on_by"
       ],
       "title": "ClassMetrics",
+      "type": "object"
+    },
+    "ControllerMapping": {
+      "description": "A controller.xml <event type=\"java\"> handler: request-map -> Class#method.",
+      "properties": {
+        "request": {
+          "title": "Request",
+          "type": "string"
+        },
+        "implementation": {
+          "title": "Implementation",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "title": "Line",
+          "type": "integer"
+        },
+        "class_found": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Class Found"
+        },
+        "method_found": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method Found"
+        },
+        "reference_status": {
+          "default": "not_checked",
+          "enum": [
+            "ok",
+            "method_missing",
+            "class_missing",
+            "out_of_scope",
+            "not_checked"
+          ],
+          "title": "Reference Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request",
+        "implementation",
+        "file",
+        "line"
+      ],
+      "title": "ControllerMapping",
+      "type": "object"
+    },
+    "Coverage": {
+      "description": "How much of the module's logic the analyzer can see. Attributed through the module's component directory.",
+      "properties": {
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "service_defs_total": {
+          "title": "Service Defs Total",
+          "type": "integer"
+        },
+        "service_defs_by_engine": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Service Defs By Engine",
+          "type": "object"
+        },
+        "implemented_defs": {
+          "title": "Implemented Defs",
+          "type": "integer"
+        },
+        "java_defs": {
+          "title": "Java Defs",
+          "type": "integer"
+        },
+        "java_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Java Share"
+        },
+        "groovy_logic_files": {
+          "title": "Groovy Logic Files",
+          "type": "integer"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "component",
+        "service_defs_total",
+        "service_defs_by_engine",
+        "implemented_defs",
+        "java_defs",
+        "java_share",
+        "groovy_logic_files",
+        "confidence"
+      ],
+      "title": "Coverage",
       "type": "object"
     },
     "Cycles": {
@@ -220,7 +384,18 @@
           ],
           "title": "Declared Major"
         },
-        "min_current_major": {
+        "latest_stable_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Latest Stable Version"
+        },
+        "latest_major": {
           "anyOf": [
             {
               "type": "integer"
@@ -229,7 +404,18 @@
               "type": "null"
             }
           ],
-          "title": "Min Current Major"
+          "title": "Latest Major"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Superseded By"
         },
         "checked": {
           "title": "Checked",
@@ -252,7 +438,9 @@
         "coordinate",
         "declared_version",
         "declared_major",
-        "min_current_major",
+        "latest_stable_version",
+        "latest_major",
+        "superseded_by",
         "checked",
         "outdated"
       ],
@@ -269,7 +457,8 @@
             "module_without_tests",
             "namespace_mix",
             "module_cycle",
-            "outdated_dependency"
+            "outdated_dependency",
+            "broken_reference"
           ],
           "title": "Kind",
           "type": "string"
@@ -332,6 +521,18 @@
           ],
           "default": null,
           "title": "Value"
+        },
+        "tier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tier"
         }
       },
       "required": [
@@ -446,6 +647,9 @@
         "namespace_mix": {
           "title": "Namespace Mix",
           "type": "boolean"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
         }
       },
       "required": [
@@ -462,7 +666,8 @@
         "test_method_count",
         "javax_imports",
         "jakarta_imports",
-        "namespace_mix"
+        "namespace_mix",
+        "coverage"
       ],
       "title": "ModuleMetrics",
       "type": "object"
@@ -501,8 +706,8 @@
           "title": "Config File",
           "type": "string"
         },
-        "dependency_table_as_of": {
-          "title": "Dependency Table As Of",
+        "dependency_snapshot_as_of": {
+          "title": "Dependency Snapshot As Of",
           "type": "string"
         },
         "parse_errors": {
@@ -520,7 +725,7 @@
         "analyzer",
         "runtime_seconds",
         "config_file",
-        "dependency_table_as_of",
+        "dependency_snapshot_as_of",
         "parse_errors"
       ],
       "title": "RunMeta",
@@ -548,6 +753,11 @@
           "title": "File",
           "type": "string"
         },
+        "line": {
+          "default": 0,
+          "title": "Line",
+          "type": "integer"
+        },
         "class_found": {
           "anyOf": [
             {
@@ -571,6 +781,18 @@
           ],
           "default": null,
           "title": "Method Found"
+        },
+        "reference_status": {
+          "default": "not_checked",
+          "enum": [
+            "ok",
+            "method_missing",
+            "class_missing",
+            "out_of_scope",
+            "not_checked"
+          ],
+          "title": "Reference Status",
+          "type": "string"
         }
       },
       "required": [
@@ -648,6 +870,20 @@
           "title": "Service Engine Counts",
           "type": "object"
         },
+        "controller_xml_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Controller Xml Files",
+          "type": "array"
+        },
+        "controller_event_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Controller Event Counts",
+          "type": "object"
+        },
         "report_status": {
           "const": "not_analyzed",
           "default": "not_analyzed",
@@ -659,7 +895,9 @@
         "groovy_count",
         "groovy_files",
         "service_xml_files",
-        "service_engine_counts"
+        "service_engine_counts",
+        "controller_xml_files",
+        "controller_event_counts"
       ],
       "title": "Unanalyzed",
       "type": "object"
@@ -713,6 +951,13 @@
       "title": "Service Mappings",
       "type": "array"
     },
+    "controller_mappings": {
+      "items": {
+        "$ref": "#/$defs/ControllerMapping"
+      },
+      "title": "Controller Mappings",
+      "type": "array"
+    },
     "unanalyzed_files": {
       "$ref": "#/$defs/Unanalyzed"
     },
@@ -734,6 +979,7 @@
     "legacy_markers",
     "dependencies",
     "service_mappings",
+    "controller_mappings",
     "unanalyzed_files",
     "findings"
   ],

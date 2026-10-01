@@ -51,15 +51,46 @@ def test_fan_out_and_edges(name: str, result: AnalysisResult, expected: dict[str
 
 
 @pytest.mark.parametrize("name", CLASS_NAMES)
-def test_service_fan_in_and_used(name: str, result: AnalysisResult, expected: dict[str, Any], fqn_of: Any) -> None:
+def test_service_fan_in_controller_fan_in_and_used(name: str, result: AnalysisResult, expected: dict[str, Any],
+                                                   fqn_of: Any) -> None:
     got, want = result.classes[fqn_of(name)], expected["classes"][name]
     assert got.service_fan_in == want["service_fan_in"]
+    assert got.controller_fan_in == want["controller_fan_in"]
     assert got.used == want["used"]
 
 
 def test_order_services_is_used_despite_zero_java_fan_in(result: AnalysisResult, fqn_of: Any) -> None:
     c = result.classes[fqn_of("OrderServices")]
-    assert (c.fan_in, c.service_fan_in, c.used) == (0, 2, True)
+    assert (c.fan_in, c.service_fan_in, c.controller_fan_in, c.used) == (0, 2, 1, True)
+
+
+def test_party_controller_is_used_only_through_controller_xml(result: AnalysisResult, fqn_of: Any) -> None:
+    c = result.classes[fqn_of("PartyController")]
+    assert (c.fan_in, c.service_fan_in, c.controller_fan_in, c.used) == (0, 0, 3, True)
+    assert result.classes[fqn_of("PartyLegacyHelper")].used is False
+
+
+@pytest.mark.parametrize("name", CLASS_NAMES)
+def test_size_tier_and_percentiles(name: str, result: AnalysisResult, expected: dict[str, Any], fqn_of: Any) -> None:
+    got, want = result.classes[fqn_of(name)], expected["classes"][name]
+    assert got.size_tier == want["size_tier"]
+    for key in ("loc", "complexity", "fan_in", "fan_out"):
+        assert getattr(got, f"{key}_percentile") == pytest.approx(want[f"{key}_percentile"], abs=1e-4), key
+
+
+def test_extreme_tier_is_a_subset_of_large(result: AnalysisResult, expected: dict[str, Any], fqn_of: Any) -> None:
+    extreme = {f.subject for f in result.findings if f.kind == "god_class" and f.tier == "extreme"}
+    want = next(s["subjects"] for s in expected["deliberate_smells"] if s["smell"] == "god_class_extreme")
+    assert extreme == {fqn_of(n) for n in want} == {fqn_of("OrderServices")}
+    large = {f.subject for f in result.findings if f.kind == "god_class" and f.tier == "large"}
+    assert large == {fqn_of("LedgerReconciler")}
+
+
+def test_percentile_rule_is_strictly_lower_share(result: AnalysisResult) -> None:
+    pcts = [c.fan_out_percentile for c in result.classes.values()]
+    zero_fan_out = [c for c in result.classes.values() if c.fan_out == 0]
+    assert zero_fan_out and all(c.fan_out_percentile == 0 for c in zero_fan_out)  # ties at zero stay zero
+    assert max(pcts) < 100
 
 
 @pytest.mark.parametrize("name", CLASS_NAMES)
@@ -92,7 +123,7 @@ def test_test_methods_are_counted(result: AnalysisResult) -> None:
 
 
 def test_god_class_boundary(result: AnalysisResult, expected: dict[str, Any], fqn_of: Any) -> None:
-    flagged = {f.subject for f in result.findings if f.kind == "god_class"}
+    flagged = {f.subject for f in result.findings if f.kind == "god_class"}  # both tiers
     wanted = next(s["subjects"] for s in expected["deliberate_smells"] if s["smell"] == "god_class")
     assert flagged == {fqn_of(n) for n in wanted}
     assert fqn_of("LedgerReconciler") in flagged       # LOC 400, complexity 51: exactly on the thresholds
@@ -135,25 +166,68 @@ def test_namespace_mix(result: AnalysisResult, expected: dict[str, Any]) -> None
 def test_outdated_dependencies(result: AnalysisResult, expected: dict[str, Any]) -> None:
     key = lambda d: (d["file"], d["coordinate"])
     got = sorted(({"file": d.file, "coordinate": d.coordinate, "declared_version": d.declared_version,
-                   "declared_major": d.declared_major, "min_current_major": d.min_current_major,
+                   "declared_major": d.declared_major, "superseded_by": d.superseded_by,
                    "outdated": d.outdated} for d in result.dependencies), key=key)
     assert got == sorted(expected["dependencies"]["items"], key=key)
     assert sum(bool(d.outdated) for d in result.dependencies) == expected["dependencies"]["outdated_count"]
-    assert result.meta.dependency_table_as_of == expected["dependencies"]["table_as_of"]
+    assert result.meta.dependency_snapshot_as_of == expected["dependencies"]["snapshot_as_of"]
+
+
+def test_dependency_status_comes_from_the_committed_snapshot(result: AnalysisResult) -> None:
+    spring = next(d for d in result.dependencies if d.coordinate == "org.springframework:spring-core")
+    assert spring.declared_version == "4.3.30.RELEASE"  # resolved from ${spring.version}
+    assert spring.latest_major is not None and spring.latest_major > 4 and spring.outdated
+    servlet = next(d for d in result.dependencies if d.coordinate == "javax.servlet:javax.servlet-api")
+    assert servlet.superseded_by == "jakarta.servlet:jakarta.servlet-api" and servlet.outdated
 
 
 def test_both_dependency_formats_are_read(result: AnalysisResult) -> None:
-    files = {d.file for d in result.dependencies}
-    assert files == {"pom.xml", "gradle/libs.versions.toml"}
-    spring = next(d for d in result.dependencies if d.coordinate == "org.springframework:spring-core")
-    assert spring.declared_version == "4.3.30.RELEASE"  # resolved from ${spring.version}
+    assert {d.file for d in result.dependencies} == {"pom.xml", "gradle/libs.versions.toml"}
 
 
 def test_service_mappings(result: AnalysisResult, expected: dict[str, Any]) -> None:
-    got = sorted((s.service, s.engine, s.implementation, s.analyzed) for s in result.service_mappings)
-    want = sorted((s["service"], s["engine"], s["implementation"], s["analyzed"]) for s in expected["service_mappings"])
+    got = sorted((m.service, m.engine, m.implementation, m.analyzed, m.line) for m in result.service_mappings)
+    want = sorted((m["service"], m["engine"], m["implementation"], m["analyzed"], m["line"])
+                  for m in expected["service_mappings"])
     assert got == want
-    assert all(s.class_found and s.method_found for s in result.service_mappings if s.engine == "java")
+
+
+def test_service_reference_status(result: AnalysisResult, expected: dict[str, Any]) -> None:
+    got = {m.service: m.reference_status for m in result.service_mappings if m.engine == "java"}
+    want = {m["service"]: m["reference_status"] for m in expected["service_mappings"] if m["engine"] == "java"}
+    assert got == want
+    assert got["syncExternalLedger"] == "out_of_scope"  # unanalysed module: NOT broken
+
+
+def test_controller_mappings(result: AnalysisResult, expected: dict[str, Any]) -> None:
+    got = sorted((m.request, m.implementation, m.line, m.reference_status) for m in result.controller_mappings)
+    want = sorted((m["request"], m["implementation"], m["line"], m["reference_status"])
+                  for m in expected["controller_mappings"])
+    assert got == want
+
+
+def test_broken_references_are_findings_with_evidence(result: AnalysisResult, expected: dict[str, Any]) -> None:
+    got = sorted((f.subject.split(" ", 1)[0] if not f.subject.startswith("controller") else "controller",
+                  f.subject.rsplit(" ", 1)[1], f.line, f.value)
+                 for f in result.findings if f.kind == "broken_reference")
+    want = sorted((b["source"], b["name"], b["line"], b["status"]) for b in expected["broken_references"])
+    assert got == want
+    assert all(f.file for f in result.findings if f.kind == "broken_reference")
+
+
+def test_coverage_per_module(result: AnalysisResult, expected: dict[str, Any]) -> None:
+    for name, want in expected["modules"].items():
+        got = result.modules[name].coverage.model_dump()
+        assert got == want["coverage"], name
+    assert result.modules["order"].coverage.confidence == "medium"  # 7 of 13 implemented definitions are Java
+
+
+def test_coverage_confidence_thresholds_come_from_config() -> None:
+    cfg = load_config()
+    cfg.coverage.high_min_java_share = 0.5
+    assert analyze(FIXTURE, cfg=cfg).modules["order"].coverage.confidence == "high"
+    cfg.coverage.high_min_java_share, cfg.coverage.medium_min_java_share = 0.9, 0.6
+    assert analyze(FIXTURE, cfg=cfg).modules["order"].coverage.confidence == "low"
 
 
 def test_groovy_is_counted_not_parsed(result: AnalysisResult, expected: dict[str, Any]) -> None:
@@ -161,6 +235,9 @@ def test_groovy_is_counted_not_parsed(result: AnalysisResult, expected: dict[str
     assert result.unanalyzed_files.groovy_count == want["groovy_count"]
     assert result.unanalyzed_files.groovy_files == want["groovy_files"]
     assert result.unanalyzed_files.service_xml_files == want["service_xml_files"]
+    assert result.unanalyzed_files.controller_xml_files == want["controller_xml_files"]
+    assert result.unanalyzed_files.controller_event_counts == want["controller_event_counts"]
+    assert result.unanalyzed_files.service_engine_counts == want["service_engine_counts"]
     assert result.unanalyzed_files.report_status == "not_analyzed"
     assert not any(c.file.endswith(".groovy") for c in result.classes.values())
 
@@ -204,6 +281,14 @@ def test_thresholds_come_from_config() -> None:
     cfg.god_class.min_complexity_above = 49
     flagged = {f.subject for f in analyze(FIXTURE, cfg=cfg).findings if f.kind == "god_class"}
     assert any(s.endswith("StatementFormatter") for s in flagged)
+
+
+def test_extreme_threshold_comes_from_config() -> None:
+    cfg = load_config()
+    cfg.god_class.extreme.min_loc = 400
+    cfg.god_class.extreme.min_complexity_above = 50
+    tiers = {f.subject.rsplit(".", 1)[1]: f.tier for f in analyze(FIXTURE, cfg=cfg).findings if f.kind == "god_class"}
+    assert tiers["LedgerReconciler"] == "extreme"
 
 
 def test_result_roundtrips_through_the_schema(result: AnalysisResult) -> None:

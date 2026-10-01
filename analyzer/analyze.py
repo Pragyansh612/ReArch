@@ -7,14 +7,19 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from analyzer import coverage as cov
 from analyzer import deps as deps_mod
 from analyzer import graph as g
+from analyzer import references
 from analyzer.config import DEFAULT_CONFIG, AnalysisConfig, CallPattern, load_config
+from analyzer.controller import parse_controller
 from analyzer.findings import build_findings
 from analyzer.java_parser import ParsedJava, parse_java
 from analyzer.schema import (
     AnalysisResult,
     ClassMetrics,
+    ControllerMapping,
+    Coverage,
     Cycles,
     DbInstance,
     DbSummary,
@@ -108,19 +113,17 @@ def _services(files: list[Path], root: Path) -> tuple[list[ServiceMapping], list
     return mappings, service_files
 
 
-def _link_services(mappings: list[ServiceMapping], classes: dict[str, g.ClassInfo]) -> Counter[str]:
-    index = g.TypeIndex(classes)
-    fan: Counter[str] = Counter()
-    for m in mappings:
-        if not m.analyzed:
-            continue
-        fqn, method = m.implementation.split("#", 1)
-        owner = index.owner.get(fqn)
-        m.class_found = owner is not None
-        m.method_found = owner is not None and method in classes[owner].parsed.method_names
-        if owner:
-            fan[owner] += 1
-    return fan
+def _controllers(files: list[Path], root: Path) -> tuple[list[ControllerMapping], list[str], dict[str, int]]:
+    mappings: list[ControllerMapping] = []
+    controller_files: list[str] = []
+    counts: Counter[str] = Counter()
+    for path in files:
+        parsed = parse_controller(path, _rel(path, root))
+        if parsed is not None:
+            controller_files.append(_rel(path, root))
+            mappings.extend(parsed[0])
+            counts.update(parsed[1])
+    return mappings, controller_files, dict(sorted(counts.items()))
 
 
 def _tests(paths: list[Path], cfg: AnalysisConfig) -> dict[str, tuple[list[str], int]]:
@@ -149,16 +152,18 @@ def _dependencies(root: Path, cfg: AnalysisConfig) -> list[Dependency]:
     poms, tomls = find_dependency_files(root, cfg)
     out: list[Dependency] = []
     for pom in poms:
-        out += deps_mod.evaluate(_rel(pom, root), deps_mod.parse_pom(pom), cfg.dependency_table)
+        out += deps_mod.evaluate(_rel(pom, root), deps_mod.parse_pom(pom), cfg.dependency_snapshot,
+                                  cfg.date_based_version_min)
     for toml in tomls:
-        out += deps_mod.evaluate(_rel(toml, root), deps_mod.parse_version_catalog(toml), cfg.dependency_table)
+        out += deps_mod.evaluate(_rel(toml, root), deps_mod.parse_version_catalog(toml), cfg.dependency_snapshot,
+                                  cfg.date_based_version_min)
     return out
 
 
 def _module_metrics(classes: dict[str, g.ClassInfo], metrics: dict[str, ClassMetrics],
                     graph: dict[str, set[str]], markers: list[LegacyMarker],
-                    tests: dict[str, tuple[list[str], int]],
-                    groovy_tests: Counter[str]) -> dict[str, ModuleMetrics]:
+                    tests: dict[str, tuple[list[str], int]], groovy_tests: Counter[str],
+                    coverage: dict[str, Coverage]) -> dict[str, ModuleMetrics]:
     edges = g.module_edges(classes, graph)
     out: dict[str, ModuleMetrics] = {}
     for name in sorted({c.module for c in classes.values()}):
@@ -171,7 +176,7 @@ def _module_metrics(classes: dict[str, g.ClassInfo], metrics: dict[str, ClassMet
             depends_on_modules=dict(sorted(edges.get(name, {}).items())), module_fan_out=len(edges.get(name, {})),
             module_fan_in=sum(1 for other in edges.values() if name in other), has_tests=bool(test_names) or groovy_tests[name] > 0,
             test_classes=sorted(test_names), groovy_test_files=groovy_tests[name], test_method_count=test_methods, javax_imports=javax,
-            jakarta_imports=jakarta, namespace_mix=javax > 0 and jakarta > 0)
+            jakarta_imports=jakarta, namespace_mix=javax > 0 and jakarta > 0, coverage=coverage[name])
     return out
 
 
@@ -186,21 +191,32 @@ def analyze(repo: Path, scope: list[str] | None = None, cfg: AnalysisConfig | No
     graph = g.resolve_dependencies(classes)
     inbound = g.invert(graph)
     mappings, service_files = _services(sources.service_xml_candidates, repo)
-    service_fan = _link_services(mappings, classes)
+    service_fan = references.link(mappings, classes, cfg)
+    controllers, controller_files, controller_counts = _controllers(sources.controller_xml, repo)
+    controller_fan = references.link(controllers, classes, cfg)
 
+    raw = {"loc": {f: float(c.parsed.loc) for f, c in classes.items()},
+           "complexity": {f: float(c.parsed.complexity) for f, c in classes.items()},
+           "fan_out": {f: float(len(graph[f])) for f in classes},
+           "fan_in": {f: float(len(inbound[f])) for f in classes}}
+    pct = {key: cov.percentiles(values) for key, values in raw.items()}
     metrics: dict[str, ClassMetrics] = {}
     for fqn, info in sorted(classes.items()):
         p = info.parsed
+        inbound_total = len(inbound[fqn]) + service_fan[fqn] + controller_fan[fqn]
         metrics[fqn] = ClassMetrics(
             name=info.name, fqn=fqn, module=info.module, file=info.file, loc=p.loc, fan_in=len(inbound[fqn]),
-            fan_out=len(graph[fqn]), service_fan_in=service_fan[fqn], used=len(inbound[fqn]) + service_fan[fqn] > 0,
-            complexity=p.complexity, complexity_band=_band(p.complexity, cfg),  # type: ignore[arg-type]
-            depends_on=sorted(graph[fqn]), depended_on_by=sorted(inbound[fqn]))
+            fan_out=len(graph[fqn]), service_fan_in=service_fan[fqn], controller_fan_in=controller_fan[fqn],
+            used=inbound_total > 0, complexity=p.complexity, complexity_band=_band(p.complexity, cfg),  # type: ignore[arg-type]
+            size_tier=cov.tier(p.loc, p.complexity, cfg), loc_percentile=pct["loc"][fqn],
+            complexity_percentile=pct["complexity"][fqn], fan_in_percentile=pct["fan_in"][fqn],
+            fan_out_percentile=pct["fan_out"][fqn], depends_on=sorted(graph[fqn]), depended_on_by=sorted(inbound[fqn]))
 
     markers = _markers(classes, cfg)
     tests = _tests(sources.test_java, cfg)
+    coverage = cov.module_coverage(classes, mappings, sources.groovy, repo, cfg)
     modules = _module_metrics(classes, metrics, graph, markers, tests,
-                              _groovy_tests(sources.groovy, repo, cfg))
+                              _groovy_tests(sources.groovy, repo, cfg), coverage)
     mod_graph = {m: set(v.depends_on_modules) for m, v in modules.items()}
     cycles = Cycles(module_cycles=g.strongly_connected(list(modules), mod_graph),
                     class_cycles=g.strongly_connected(list(classes), graph))
@@ -211,7 +227,7 @@ def analyze(repo: Path, scope: list[str] | None = None, cfg: AnalysisConfig | No
     return AnalysisResult(
         meta=RunMeta(name=name or repo.name, repo_path=str(repo), scope=scope, analyzer=ANALYZER_ID,
                      runtime_seconds=round(time.perf_counter() - started, 3), config_file=str(config_path),
-                     dependency_table_as_of=cfg.dependency_table.as_of, parse_errors=errors),
+                     dependency_snapshot_as_of=cfg.dependency_snapshot.as_of, parse_errors=errors),
         totals=Totals(main_java_classes=len(classes), modules=len(modules),
                       main_java_loc=sum(m.loc for m in metrics.values()),
                       test_classes=sum(len(t[0]) for t in tests.values()),
@@ -220,7 +236,8 @@ def analyze(repo: Path, scope: list[str] | None = None, cfg: AnalysisConfig | No
         modules=modules, classes=metrics, cycles=cycles,
         db_coupling=DbSummary(total=len(db), jdbc=sum(d.type == "jdbc" for d in db),
                               entity_engine=sum(d.type == "entity_engine" for d in db), instances=db),
-        legacy_markers=markers, dependencies=dependencies, service_mappings=mappings,
+        legacy_markers=markers, dependencies=dependencies, service_mappings=mappings, controller_mappings=controllers,
         unanalyzed_files=Unanalyzed(groovy_count=len(groovy), groovy_files=groovy, service_xml_files=service_files,
-                                    service_engine_counts=dict(sorted(Counter(m.engine for m in mappings).items()))),
-        findings=build_findings(metrics, infos, modules, cycles, dependencies, cfg))
+                                    service_engine_counts=dict(sorted(Counter(m.engine for m in mappings).items())),
+                                    controller_xml_files=controller_files, controller_event_counts=controller_counts),
+        findings=build_findings(metrics, infos, modules, cycles, dependencies, mappings, controllers, cfg))

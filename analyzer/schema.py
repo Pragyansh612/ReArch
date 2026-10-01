@@ -12,10 +12,12 @@ from pydantic import BaseModel
 
 SCHEMA_VERSION = "1.0"
 Band = Literal["low", "medium", "high"]
+SizeTier = Literal["none", "large", "extreme"]
+Confidence = Literal["high", "medium", "low"]
 DbType = Literal["jdbc", "entity_engine"]
 FindingKind = Literal[
     "god_class", "highly_coupled", "module_without_tests", "namespace_mix",
-    "module_cycle", "outdated_dependency",
+    "module_cycle", "outdated_dependency", "broken_reference",
 ]
 
 
@@ -30,11 +32,31 @@ class ClassMetrics(BaseModel):
     fan_in: int  # distinct other analysed classes that reference this class in Java code
     fan_out: int  # distinct other analysed classes this class references
     service_fan_in: int  # services.xml entries (engine=java) pointing at this class
-    used: bool  # fan_in + service_fan_in > 0
+    controller_fan_in: int  # controller.xml <event type="java"> entries pointing at this class
+    used: bool  # fan_in + service_fan_in + controller_fan_in > 0
     complexity: int  # approximate cyclomatic: bodies + decision points
     complexity_band: Band
+    size_tier: SizeTier  # large: loc >= 400 and complexity > 50; extreme: loc >= 1500 and complexity > 200 (config)
+    # share of analysed classes with a strictly lower value, 0-100 (the largest class is near 100, ties at 0 stay 0)
+    loc_percentile: float
+    complexity_percentile: float
+    fan_in_percentile: float
+    fan_out_percentile: float
     depends_on: list[str]  # FQNs
     depended_on_by: list[str]  # FQNs
+
+
+class Coverage(BaseModel):
+    """How much of the module's logic the analyzer can see. Attributed through the module's component directory."""
+
+    component: str  # directory holding most of the module's classes ("" = repo root)
+    service_defs_total: int
+    service_defs_by_engine: dict[str, int]
+    implemented_defs: int  # excludes engines that implement nothing (interface, group)
+    java_defs: int
+    java_share: float | None  # None when the component defines no services
+    groovy_logic_files: int  # Groovy files outside the test directory (counted, not parsed)
+    confidence: Confidence
 
 
 class ModuleMetrics(BaseModel):
@@ -52,6 +74,7 @@ class ModuleMetrics(BaseModel):
     javax_imports: int
     jakarta_imports: int
     namespace_mix: bool
+    coverage: Coverage
 
 
 class DbInstance(BaseModel):
@@ -77,8 +100,10 @@ class Dependency(BaseModel):
     coordinate: str
     declared_version: str | None
     declared_major: int | None
-    min_current_major: int | None
-    checked: bool  # False when the coordinate is not in the bundled table or no version is declared
+    latest_stable_version: str | None  # from the committed snapshot, never fetched at analysis time
+    latest_major: int | None
+    superseded_by: str | None  # renamed coordinate (e.g. javax.* -> jakarta.*)
+    checked: bool  # False when the coordinate is not in the snapshot or no version is declared
     outdated: bool | None
 
 
@@ -88,9 +113,22 @@ class ServiceMapping(BaseModel):
     implementation: str  # "<fqn>#<method>" for java, the script/location otherwise
     analyzed: bool
     file: str
+    line: int = 0
     class_found: bool | None = None  # java only: the class exists in the analysed scope
     method_found: bool | None = None
+    reference_status: Literal["ok", "method_missing", "class_missing", "out_of_scope", "not_checked"] = "not_checked"
 
+
+class ControllerMapping(BaseModel):
+    """A controller.xml <event type="java"> handler: request-map -> Class#method."""
+
+    request: str
+    implementation: str
+    file: str
+    line: int
+    class_found: bool | None = None
+    method_found: bool | None = None
+    reference_status: Literal["ok", "method_missing", "class_missing", "out_of_scope", "not_checked"] = "not_checked"
 
 class Cycles(BaseModel):
     module_cycles: list[list[str]]  # strongly connected module groups of size > 1
@@ -107,6 +145,7 @@ class Finding(BaseModel):
     line: int | None = None
     metric: str | None = None
     value: float | str | None = None
+    tier: str | None = None  # god_class: "large" or "extreme"
 
 
 class DbSummary(BaseModel):
@@ -121,6 +160,8 @@ class Unanalyzed(BaseModel):
     groovy_files: list[str]
     service_xml_files: list[str]
     service_engine_counts: dict[str, int]
+    controller_xml_files: list[str]
+    controller_event_counts: dict[str, int]  # by event type (java is analysed; service/groovy/simple are not)
     report_status: Literal["not_analyzed"] = "not_analyzed"
 
 
@@ -141,7 +182,7 @@ class RunMeta(BaseModel):
     analyzer: str
     runtime_seconds: float
     config_file: str
-    dependency_table_as_of: str
+    dependency_snapshot_as_of: str
     parse_errors: list[str]
 
 
@@ -155,5 +196,6 @@ class AnalysisResult(BaseModel):
     legacy_markers: list[LegacyMarker]
     dependencies: list[Dependency]
     service_mappings: list[ServiceMapping]
+    controller_mappings: list[ControllerMapping]
     unanalyzed_files: Unanalyzed
     findings: list[Finding]

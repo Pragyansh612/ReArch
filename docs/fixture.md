@@ -1,6 +1,6 @@
 # Fixture: `fixtures/legacy-sample`
 
-A small, deliberately bad Java 8 app (20 main classes, 4 package-modules, 2,026 LOC) that is the
+A small, deliberately bad Java 8 app (20 main classes, 4 package-modules, 2,825 LOC) that is the
 **test oracle** for the analyzer. `fixtures/expected.json` lists exactly what the analyzer must find.
 It does not compile against real OFBiz; `Delegator`, `EntityQuery` and `GenericValue` are minimal stubs.
 
@@ -13,27 +13,29 @@ It does not compile against real OFBiz; `Delegator`, `EntityQuery` and `GenericV
 | `party` | PartyService, PartyController, PartyLegacyHelper, Party | yes (1 class) | namespace mix |
 | `common` | Delegator, EntityQuery, GenericValue, StringUtil | none | OFBiz-style stubs, util |
 
-Also: `src/main/resources/servicedef/services.xml` (5 services), `src/main/groovy/.../CheckOrderFraud.groovy`,
+Also: `src/main/resources/servicedef/services.xml` (14 service definitions: 7 Java incl. 3 dangling, 1 Groovy, 2 minilang, 3 entity-auto, 1 interface),
+`src/main/webapp/WEB-INF/controller.xml` (6 request maps, 4 Java events), `src/main/groovy/.../CheckOrderFraud.groovy`,
 `pom.xml` and `gradle/libs.versions.toml`.
 
 ## Smells and the real OFBiz pattern each stands in for
 
 | Smell | Where | Real OFBiz pattern |
 |---|---|---|
-| God class | `OrderServices` (793 LOC, complexity 229, 16 similar workflow methods) and the boundary class `LedgerReconciler` (400 LOC, complexity 51). `StatementFormatter` (399, 50) is the near-miss and must NOT be flagged | `OrderServices.java` 7,516 LOC; `ShoppingCart.java` 6,416 |
+| God class | `OrderServices` (1,592 LOC, complexity 467, 33 similar workflow methods): the **extreme** tier. `LedgerReconciler` (400, 51) is the boundary class: **large** tier only. `StatementFormatter` (399, 50) is the near-miss and must NOT be flagged | `OrderServices.java` 7,516 LOC; `ShoppingCart.java` 6,416 |
 | Highly coupled service | `OrderReadHelper` (fan-in 5, fan-out 10), creating cycles order↔party and order↔billing | order/party/accounting components calling each other's helpers |
 | JDBC in business logic | `InvoiceService` (5 instances) | hand-written SQL in older helpers |
-| Entity-engine coupling | 55 instances in `OrderServices`, `OrderReadHelper`, `PartyService` | 402 `EntityQuery` uses in `applications/order` alone |
+| Entity-engine coupling | 106 instances in `OrderServices`, `OrderReadHelper`, `PartyService` | 402 `EntityQuery` uses in `applications/order` alone |
 | Missing tests | `order`, `common` | 0 tests in order/product/party/accounting |
 | javax/jakarta mix | `party`: `PartyController` (jakarta) next to `PartyLegacyHelper` (javax) | 139 javax vs 272 jakarta files, mid-migration |
 | EJB marker | `javax.ejb.Stateless` on `OrderServices` | EJB-era design |
-| Logic outside Java | `services.xml` + Groovy script | 85 `services*.xml` and 450 Groovy files |
+| Broken references | `findPartyByEmail` (method missing), `runGhostInvoicer` (class missing from analysed module `billing`), controller `PurgeParty` (method missing); `syncExternalLedger` points at an unanalysed module and is out of scope, NOT broken | OFBiz has 2 dangling service definitions and 1 dangling controller request |
+| Logic outside Java | `services.xml`, `controller.xml` and a Groovy script | 85 `services*.xml` and 450 Groovy files |
 | Outdated dependencies | 4 in `pom.xml`, 4 in the TOML; `slf4j-api` and `junit` are current (negative cases) | `dependencies.gradle` / version catalog |
 
-## Inbound use: Java fan-in vs service fan-in
+## Inbound use: Java fan-in, service fan-in, controller fan-in
 `OrderServices` has Java fan-in 0 but two `services.xml` entries point at it (`service_fan_in` 2), so `used = true`.
-A class is `used` when `fan_in + service_fan_in > 0`. `PartyController` and `PartyLegacyHelper` have neither and
-are `used = false` (unused here; on a real system a controller would be an entry point, see methodology).
+A class is `used` when `fan_in + service_fan_in + controller_fan_in > 0`. `PartyController` has Java fan-in 0 but three
+`controller.xml` events, so it is `used`. `PartyLegacyHelper`, `StatementFormatter` and `LedgerReconciler` have none and are unused.
 Stands in for OFBiz, where `OrderServices` has Java fan-in 0 and 77 service definitions.
 
 ## Traps (things the analyzer must NOT count)
@@ -44,7 +46,7 @@ Stands in for OFBiz, where `OrderServices` has Java fan-in 0 and 77 service defi
 
 ## How expected.json was produced
 `expected.json` holds outputs only. Thresholds and patterns are in `config/assumptions.yaml`; metric definitions in `docs/methodology.md`.
-Values were generated from the sources by a throwaway script that is not part of the repo and then spot-checked by hand
-(e.g. entity hits 55 = 16 methods × 3 in `OrderServices` + 3 in `PartyService` + 4 in `OrderReadHelper`).
-Complexity is an approximation of cyclomatic complexity, per the stated rule. `min_current_major` is a conservative lower bound; the table is dated (`as_of` 2026-10-01 in `config/assumptions.yaml` and `expected.json`).
+Values are generated by `fixtures/generate_expected.py` (committed; shares no code with the analyzer) and were spot-checked by hand
+(e.g. entity hits 106 = 33 methods × 3 in `OrderServices` + 3 in `PartyService` + 4 in `OrderReadHelper`).
+Complexity is an approximation of cyclomatic complexity, per the stated rule. Dependency status comes from the committed, dated snapshot `config/dependency_snapshot.yaml` (and `dependency_renames.yaml`); the oracle regenerates from it. Coverage for the fixture: one component, 7 of 13 implemented definitions are Java, so confidence is `medium`.
 The analyzer is checked against it by `analyzer/tests/test_metrics.py` and independently by `make crosscheck` (cloc + grep).

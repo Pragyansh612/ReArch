@@ -15,8 +15,8 @@ import java.util.Map;
 import javax.ejb.Stateless;
 
 /**
- * Every order workflow lives here: status changes, inventory, adjustments, payments, invoicing.
- * Stands in for OFBiz OrderServices.java (7,500 LOC).
+ * Every order workflow lives here: status changes, inventory, adjustments, shipments, payments, returns, invoicing.
+ * Stands in for OFBiz OrderServices.java (7,500 LOC). Extreme god class: far above both thresholds.
  */
 @Stateless
 public class OrderServices {
@@ -416,6 +416,102 @@ public class OrderServices {
         return result;
     }
 
+    public Map<String, Object> splitOrder(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderHeader").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderHeader");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CREATED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> mergeOrders(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderHeader").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderHeader");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CREATED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
     public Map<String, Object> reserveInventory(String orderId, String partyId, int quantity) {
         Map<String, Object> result = new HashMap<String, Object>();
         String id = StringUtil.normalizeId(orderId);
@@ -487,6 +583,102 @@ public class OrderServices {
             return result;
         }
         OrderStatus status = OrderStatus.CREATED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> adjustInventory(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("InventoryItem").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("InventoryItem");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.APPROVED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> transferInventory(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("InventoryItem").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("InventoryItem");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.APPROVED;
         int checked = 0;
         for (int i = 0; i < quantity; i++) {
             if (i % 2 == 0 && quantity > 10) {
@@ -656,6 +848,102 @@ public class OrderServices {
         return result;
     }
 
+    public Map<String, Object> removePromotion(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderAdjustment").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderAdjustment");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CREATED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> applyDiscount(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderAdjustment").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderAdjustment");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.APPROVED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
     public Map<String, Object> splitShipment(String orderId, String partyId, int quantity) {
         Map<String, Object> result = new HashMap<String, Object>();
         String id = StringUtil.normalizeId(orderId);
@@ -679,6 +967,150 @@ public class OrderServices {
             return result;
         }
         OrderStatus status = OrderStatus.APPROVED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> mergeShipments(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderShipment").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderShipment");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.APPROVED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> scheduleShipment(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderShipment").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderShipment");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.APPROVED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> cancelShipment(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderShipment").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderShipment");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CANCELLED;
         int checked = 0;
         for (int i = 0; i < quantity; i++) {
             if (i % 2 == 0 && quantity > 10) {
@@ -752,6 +1184,102 @@ public class OrderServices {
         return result;
     }
 
+    public Map<String, Object> addOrderItem(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderItem").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderItem");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CREATED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> removeOrderItem(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderItem").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderItem");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CREATED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
     public Map<String, Object> recordPayment(String orderId, String partyId, int quantity) {
         Map<String, Object> result = new HashMap<String, Object>();
         String id = StringUtil.normalizeId(orderId);
@@ -775,6 +1303,294 @@ public class OrderServices {
             return result;
         }
         OrderStatus status = OrderStatus.APPROVED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> refundPayment(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderPaymentPref").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderPaymentPref");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CANCELLED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> authorizePayment(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderPaymentPref").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderPaymentPref");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.APPROVED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> capturePayment(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("OrderPaymentPref").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("OrderPaymentPref");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.COMPLETED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> createReturn(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("ReturnHeader").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("ReturnHeader");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.CREATED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> receiveReturn(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("ReturnHeader").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("ReturnHeader");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.COMPLETED;
+        int checked = 0;
+        for (int i = 0; i < quantity; i++) {
+            if (i % 2 == 0 && quantity > 10) {
+                checked += 2;
+            } else if (quantity > 100) {
+                checked += 3;
+            } else {
+                checked++;
+            }
+        }
+        switch (status) {
+            case CREATED:
+                result.put("next", "approve");
+                break;
+            case APPROVED:
+                result.put("next", "ship");
+                break;
+            default:
+                result.put("next", "none");
+        }
+        row.set("statusId", status.name());
+        result.put("checked", checked > 0 ? checked : 0);
+        return result;
+    }
+
+    public Map<String, Object> closeReturn(String orderId, String partyId, int quantity) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        String id = StringUtil.normalizeId(orderId);
+        if (id.isEmpty()) {
+            result.put("error", "missing orderId");
+            return result;
+        }
+        GenericValue row = EntityQuery.use(delegator).from("ReturnHeader").where("orderId", id).queryOne();
+        if (row == null && quantity > 0) {
+            row = delegator.makeValue("ReturnHeader");
+            row.set("orderId", id);
+            row.set("partyId", partyId);
+            delegator.create(row);
+        } else if (row == null) {
+            result.put("error", "not found");
+            return result;
+        }
+        Party party = partyService.findParty(partyId);
+        if (party == null || !readHelper.isOpen(id)) {
+            result.put("error", "order closed or party unknown");
+            return result;
+        }
+        OrderStatus status = OrderStatus.COMPLETED;
         int checked = 0;
         for (int i = 0; i < quantity; i++) {
             if (i % 2 == 0 && quantity > 10) {

@@ -1,0 +1,967 @@
+{
+  "$defs": {
+    "Component": {
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "measure": {
+          "title": "Measure",
+          "type": "number"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
+        "contribution": {
+          "title": "Contribution",
+          "type": "number"
+        }
+      },
+      "required": [
+        "key",
+        "measure",
+        "weight",
+        "contribution"
+      ],
+      "title": "Component",
+      "type": "object"
+    },
+    "CriterionScore": {
+      "properties": {
+        "criterion": {
+          "enum": [
+            "cost",
+            "risk",
+            "speed",
+            "long_term_value"
+          ],
+          "title": "Criterion",
+          "type": "string"
+        },
+        "raw": {
+          "title": "Raw",
+          "type": "number"
+        },
+        "goodness": {
+          "title": "Goodness",
+          "type": "number"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
+        "contribution": {
+          "title": "Contribution",
+          "type": "number"
+        }
+      },
+      "required": [
+        "criterion",
+        "raw",
+        "goodness",
+        "weight",
+        "contribution"
+      ],
+      "title": "CriterionScore",
+      "type": "object"
+    },
+    "Criticality": {
+      "properties": {
+        "value": {
+          "title": "Value",
+          "type": "integer"
+        },
+        "source": {
+          "enum": [
+            "heuristic",
+            "override"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "heuristic_value": {
+          "title": "Heuristic Value",
+          "type": "integer"
+        },
+        "inputs": {
+          "$ref": "#/$defs/CriticalityInputs"
+        },
+        "override_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Override Reason"
+        },
+        "status": {
+          "default": "proposed",
+          "enum": [
+            "proposed",
+            "confirmed_by_override"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "source",
+        "heuristic_value",
+        "inputs"
+      ],
+      "title": "Criticality",
+      "type": "object"
+    },
+    "CriticalityInputs": {
+      "properties": {
+        "java_cross_module_fan_in": {
+          "title": "Java Cross Module Fan In",
+          "type": "integer"
+        },
+        "service_fan_in": {
+          "title": "Service Fan In",
+          "type": "integer"
+        },
+        "controller_fan_in": {
+          "title": "Controller Fan In",
+          "type": "integer"
+        },
+        "inbound_total": {
+          "title": "Inbound Total",
+          "type": "integer"
+        },
+        "inbound_share": {
+          "title": "Inbound Share",
+          "type": "number"
+        },
+        "data_writes": {
+          "title": "Data Writes",
+          "type": "integer"
+        },
+        "write_share": {
+          "title": "Write Share",
+          "type": "number"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "java_cross_module_fan_in",
+        "service_fan_in",
+        "controller_fan_in",
+        "inbound_total",
+        "inbound_share",
+        "data_writes",
+        "write_share",
+        "score"
+      ],
+      "title": "CriticalityInputs",
+      "type": "object"
+    },
+    "EffortLine": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "days": {
+          "title": "Days",
+          "type": "number"
+        },
+        "formula": {
+          "title": "Formula",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "days",
+        "formula"
+      ],
+      "title": "EffortLine",
+      "type": "object"
+    },
+    "Flip": {
+      "description": "The smallest single-assumption change that flips this module's recommendation.",
+      "properties": {
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        },
+        "current_value": {
+          "title": "Current Value",
+          "type": "number"
+        },
+        "flip_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Flip Value"
+        },
+        "change_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Change Pct"
+        },
+        "new_strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "rehost",
+                "replatform",
+                "refactor",
+                "rearchitect",
+                "retire"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Strategy"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parameter",
+        "current_value",
+        "flip_value",
+        "change_pct",
+        "new_strategy",
+        "note"
+      ],
+      "title": "Flip",
+      "type": "object"
+    },
+    "HealthComponent": {
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "raw": {
+          "title": "Raw",
+          "type": "number"
+        },
+        "raw_unit": {
+          "title": "Raw Unit",
+          "type": "string"
+        },
+        "normalized": {
+          "title": "Normalized",
+          "type": "number"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
+        "contribution_points": {
+          "title": "Contribution Points",
+          "type": "number"
+        },
+        "how": {
+          "title": "How",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "raw",
+        "raw_unit",
+        "normalized",
+        "weight",
+        "contribution_points",
+        "how"
+      ],
+      "title": "HealthComponent",
+      "type": "object"
+    },
+    "Hotspot": {
+      "properties": {
+        "fqn": {
+          "title": "Fqn",
+          "type": "string"
+        },
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "loc": {
+          "title": "Loc",
+          "type": "integer"
+        },
+        "complexity": {
+          "title": "Complexity",
+          "type": "integer"
+        },
+        "size_tier": {
+          "title": "Size Tier",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/HotspotComponent"
+          },
+          "title": "Components",
+          "type": "array"
+        },
+        "flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "fqn",
+        "module",
+        "file",
+        "loc",
+        "complexity",
+        "size_tier",
+        "score",
+        "components",
+        "flags"
+      ],
+      "title": "Hotspot",
+      "type": "object"
+    },
+    "HotspotComponent": {
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
+        "contribution": {
+          "title": "Contribution",
+          "type": "number"
+        }
+      },
+      "required": [
+        "key",
+        "value",
+        "weight",
+        "contribution"
+      ],
+      "title": "HotspotComponent",
+      "type": "object"
+    },
+    "ModuleHealth": {
+      "properties": {
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/HealthComponent"
+          },
+          "title": "Components",
+          "type": "array"
+        },
+        "top_drivers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Top Drivers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "score",
+        "components",
+        "top_drivers"
+      ],
+      "title": "ModuleHealth",
+      "type": "object"
+    },
+    "ModuleReport": {
+      "properties": {
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "loc": {
+          "title": "Loc",
+          "type": "integer"
+        },
+        "kloc": {
+          "title": "Kloc",
+          "type": "number"
+        },
+        "health": {
+          "$ref": "#/$defs/ModuleHealth"
+        },
+        "criticality": {
+          "$ref": "#/$defs/Criticality"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "java_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Java Share"
+        },
+        "inbound_references": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Inbound References",
+          "type": "object"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/StrategyOption"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "choices": {
+          "additionalProperties": {
+            "$ref": "#/$defs/StrategyChoice"
+          },
+          "title": "Choices",
+          "type": "object"
+        },
+        "sensitivity": {
+          "items": {
+            "$ref": "#/$defs/Flip"
+          },
+          "title": "Sensitivity",
+          "type": "array"
+        }
+      },
+      "required": [
+        "module",
+        "loc",
+        "kloc",
+        "health",
+        "criticality",
+        "confidence",
+        "java_share",
+        "inbound_references",
+        "options",
+        "choices",
+        "sensitivity"
+      ],
+      "title": "ModuleReport",
+      "type": "object"
+    },
+    "Priorities": {
+      "description": "Client weights over the four criteria; they sum to 1.",
+      "properties": {
+        "cost": {
+          "title": "Cost",
+          "type": "number"
+        },
+        "risk": {
+          "title": "Risk",
+          "type": "number"
+        },
+        "speed": {
+          "title": "Speed",
+          "type": "number"
+        },
+        "long_term_value": {
+          "title": "Long Term Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "cost",
+        "risk",
+        "speed",
+        "long_term_value"
+      ],
+      "title": "Priorities",
+      "type": "object"
+    },
+    "ProfileTotals": {
+      "properties": {
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        },
+        "weights": {
+          "$ref": "#/$defs/Priorities"
+        },
+        "strategy_by_module": {
+          "additionalProperties": {
+            "enum": [
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "type": "string"
+          },
+          "title": "Strategy By Module",
+          "type": "object"
+        },
+        "total_effort_days": {
+          "title": "Total Effort Days",
+          "type": "number"
+        },
+        "total_cost_jpy": {
+          "title": "Total Cost Jpy",
+          "type": "integer"
+        },
+        "total_duration_months": {
+          "title": "Total Duration Months",
+          "type": "number"
+        },
+        "close_calls": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Close Calls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "profile",
+        "weights",
+        "strategy_by_module",
+        "total_effort_days",
+        "total_cost_jpy",
+        "total_duration_months",
+        "close_calls"
+      ],
+      "title": "ProfileTotals",
+      "type": "object"
+    },
+    "RecommendationMeta": {
+      "properties": {
+        "schema_version": {
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "analysis_name": {
+          "title": "Analysis Name",
+          "type": "string"
+        },
+        "analyzer": {
+          "title": "Analyzer",
+          "type": "string"
+        },
+        "selected_profile": {
+          "title": "Selected Profile",
+          "type": "string"
+        },
+        "engine": {
+          "default": "rearch-engine 0.1.0",
+          "title": "Engine",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "analysis_name",
+        "analyzer",
+        "selected_profile",
+        "notes"
+      ],
+      "title": "RecommendationMeta",
+      "type": "object"
+    },
+    "ScoredStrategy": {
+      "properties": {
+        "strategy": {
+          "enum": [
+            "rehost",
+            "replatform",
+            "refactor",
+            "rearchitect",
+            "retire"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/CriterionScore"
+          },
+          "title": "Criteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "strategy",
+        "score",
+        "criteria"
+      ],
+      "title": "ScoredStrategy",
+      "type": "object"
+    },
+    "StrategyChoice": {
+      "properties": {
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        },
+        "weights": {
+          "$ref": "#/$defs/Priorities"
+        },
+        "chosen": {
+          "enum": [
+            "rehost",
+            "replatform",
+            "refactor",
+            "rearchitect",
+            "retire"
+          ],
+          "title": "Chosen",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "runner_up": {
+          "anyOf": [
+            {
+              "enum": [
+                "rehost",
+                "replatform",
+                "refactor",
+                "rearchitect",
+                "retire"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runner Up"
+        },
+        "runner_up_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runner Up Score"
+        },
+        "margin": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Margin"
+        },
+        "close_call": {
+          "title": "Close Call",
+          "type": "boolean"
+        },
+        "ranking": {
+          "items": {
+            "$ref": "#/$defs/ScoredStrategy"
+          },
+          "title": "Ranking",
+          "type": "array"
+        }
+      },
+      "required": [
+        "profile",
+        "weights",
+        "chosen",
+        "score",
+        "runner_up",
+        "runner_up_score",
+        "margin",
+        "close_call",
+        "ranking"
+      ],
+      "title": "StrategyChoice",
+      "type": "object"
+    },
+    "StrategyOption": {
+      "properties": {
+        "strategy": {
+          "enum": [
+            "rehost",
+            "replatform",
+            "refactor",
+            "rearchitect",
+            "retire"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "eligible": {
+          "title": "Eligible",
+          "type": "boolean"
+        },
+        "ineligible_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ineligible Reason"
+        },
+        "multipliers": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "default": {},
+          "title": "Multipliers",
+          "type": "object"
+        },
+        "effort_lines": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EffortLine"
+          },
+          "title": "Effort Lines",
+          "type": "array"
+        },
+        "effort_days": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effort Days"
+        },
+        "cost_jpy": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Jpy"
+        },
+        "duration_months": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Months"
+        },
+        "team_size": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Team Size"
+        },
+        "risk_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Risk Score"
+        },
+        "base_risk": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Risk"
+        },
+        "risk_components": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Component"
+          },
+          "title": "Risk Components",
+          "type": "array"
+        },
+        "long_term_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Long Term Value"
+        },
+        "debt_reduction": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Debt Reduction"
+        },
+        "burden": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Burden"
+        }
+      },
+      "required": [
+        "strategy",
+        "eligible"
+      ],
+      "title": "StrategyOption",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "meta": {
+      "$ref": "#/$defs/RecommendationMeta"
+    },
+    "assumptions": {
+      "additionalProperties": true,
+      "title": "Assumptions",
+      "type": "object"
+    },
+    "modules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ModuleReport"
+      },
+      "title": "Modules",
+      "type": "object"
+    },
+    "hotspots": {
+      "items": {
+        "$ref": "#/$defs/Hotspot"
+      },
+      "title": "Hotspots",
+      "type": "array"
+    },
+    "estate": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ProfileTotals"
+      },
+      "title": "Estate",
+      "type": "object"
+    }
+  },
+  "required": [
+    "meta",
+    "assumptions",
+    "modules",
+    "hotspots",
+    "estate"
+  ],
+  "title": "Recommendation",
+  "type": "object"
+}

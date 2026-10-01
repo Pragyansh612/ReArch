@@ -1,0 +1,12 @@
+# Hand-curated: coordinates that were RENAMED rather than versioned (mostly javax.* -> jakarta.*).
+# A new major version under the old name does not exist, so "latest version" alone cannot detect these.
+# Used only by scripts/snapshot_deps.py when it writes config/dependency_snapshot.yaml.
+# Add an entry only when the successor is certain; each line is one reviewable claim.
+renames:
+  javax.servlet:javax.servlet-api: jakarta.servlet:jakarta.servlet-api
+  javax.activation:activation: jakarta.activation:jakarta.activation-api
+  javax.transaction:javax.transaction-api: jakarta.transaction:jakarta.transaction-api
+  javax.xml.soap:javax.xml.soap-api: jakarta.xml.soap:jakarta.xml.soap-api
+  com.sun.mail:javax.mail: jakarta.mail:jakarta.mail-api
+  mysql:mysql-connector-java: com.mysql:mysql-connector-j
+  org.codehaus.groovy:groovy-all: org.apache.groovy:groovy-all

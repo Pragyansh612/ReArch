@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from analyzer.config import DependencyTable
+from analyzer.config import DependencySnapshot, SnapshotEntry
 from analyzer.deps import evaluate, major, parse_pom, parse_version_catalog
 from analyzer.graph import module_of, strongly_connected
 from analyzer.java_parser import parse_java
@@ -44,10 +44,15 @@ def test_major_parsing() -> None:
     assert major(None) is None
 
 
-def test_unknown_coordinates_are_unchecked_not_outdated() -> None:
-    table = DependencyTable(as_of="2026-10-01", min_current_major={"a:b": 5})
-    out = evaluate("f", [("a:b", "1.0"), ("x:y", "1.0"), ("a:b", None)], table)
-    assert [(d.checked, d.outdated) for d in out] == [(True, True), (False, None), (False, None)]
+def test_snapshot_drives_outdated_unchecked_and_superseded() -> None:
+    snap = DependencySnapshot(as_of="2026-10-01", source="test", entries={
+        "a:b": SnapshotEntry(latest_stable_version="5.1", latest_major=5),
+        "old:name": SnapshotEntry(latest_stable_version="1.0", latest_major=1, superseded_by="new:name"),
+        "no:latest": SnapshotEntry(latest_stable_version=None, latest_major=None)})
+    out = evaluate("f", [("a:b", "1.0"), ("a:b", "5.0"), ("x:y", "1.0"), ("a:b", None), ("old:name", "1.0"),
+                         ("no:latest", "1.0")], snap)
+    assert [(d.checked, d.outdated) for d in out] == [
+        (True, True), (True, False), (False, None), (False, None), (True, True), (False, None)]
 
 
 def test_pom_unresolved_property_is_none(tmp_path: Path) -> None:
@@ -77,3 +82,10 @@ def test_groovy_tests_count_as_test_evidence(tmp_path: Path) -> None:
     order = result.modules["order"]
     assert (order.has_tests, order.test_classes, order.groovy_test_files) == (True, [], 1)
     assert not [f for f in result.findings if f.kind == "module_without_tests"]
+
+
+def test_calendar_versions_are_unchecked_not_outdated() -> None:
+    snap = DependencySnapshot(as_of="2026-10-01", source="test", entries={
+        "d:e": SnapshotEntry(latest_stable_version="20260924.2", latest_major=20260924)})
+    out = evaluate("f", [("d:e", "20240325.1")], snap, date_based_min=1900)
+    assert [(d.checked, d.outdated) for d in out] == [(False, None)]

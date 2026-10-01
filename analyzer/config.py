@@ -15,9 +15,20 @@ class Bands(BaseModel):
     medium_max: int
 
 
-class GodClassRule(BaseModel):
+class TierRule(BaseModel):
     min_loc: int
     min_complexity_above: int
+
+
+class GodClassRule(TierRule):
+    extreme: TierRule
+
+
+class CoverageRules(BaseModel):
+    high_min_java_share: float
+    medium_min_java_share: float
+    component_dir_markers: list[str]
+    non_implementing_engines: list[str]
 
 
 class CouplingRule(BaseModel):
@@ -41,9 +52,16 @@ class MarkerRules(BaseModel):
     legacy_frameworks: dict[str, list[str]]
 
 
-class DependencyTable(BaseModel):
+class SnapshotEntry(BaseModel):
+    latest_stable_version: str | None
+    latest_major: int | None
+    superseded_by: str | None = None
+
+
+class DependencySnapshot(BaseModel):
     as_of: str
-    min_current_major: dict[str, int]
+    source: str
+    entries: dict[str, SnapshotEntry]
 
 
 class AnalysisConfig(BaseModel):
@@ -53,14 +71,17 @@ class AnalysisConfig(BaseModel):
     test_groovy_dir: str
     services_dir_name: str
     skip_dirs: list[str]
+    date_based_version_min: int
+    coverage: CoverageRules
     complexity_bands: Bands
     god_class: GodClassRule
     highly_coupled: CouplingRule
     db_coupling: DbRules
     legacy_markers: MarkerRules
-    dependency_table: DependencyTable
+    dependency_snapshot: DependencySnapshot
 
 
 def load_config(path: Path = DEFAULT_CONFIG) -> AnalysisConfig:
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return AnalysisConfig(**raw["analysis"], dependency_table=raw["dependency_table"])
+    snapshot = yaml.safe_load((path.parent / raw["dependency_snapshot_file"]).read_text(encoding="utf-8"))
+    return AnalysisConfig(**raw["analysis"], dependency_snapshot=snapshot)

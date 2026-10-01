@@ -28,4 +28,28 @@
              invoke="" auth="true">
         <attribute name="orderId" type="String" mode="IN"/>
     </service>
+
+    <!-- Logic that is not Java: counted in coverage, never analysed. -->
+    <service name="calculateShippingQuote" engine="simple"
+             location="component://legacy/minilang/ShippingServices.xml" invoke="calculateShippingQuote"/>
+    <service name="recalculateTotals" engine="simple"
+             location="component://legacy/minilang/OrderTotals.xml" invoke="recalculateTotals"/>
+    <service name="createOrderNote" engine="entity-auto" default-entity-name="OrderNote" invoke="create"/>
+    <service name="updateOrderNote" engine="entity-auto" default-entity-name="OrderNote" invoke="update"/>
+    <service name="deleteOrderNote" engine="entity-auto" default-entity-name="OrderNote" invoke="delete"/>
+    <service name="orderInterface" engine="interface" location="" invoke=""/>
+
+    <!-- Dangling definitions: the three reference outcomes a broken-reference check must tell apart. -->
+    <service name="findPartyByEmail" engine="java"
+             location="com.example.legacy.party.PartyService" invoke="findPartyByEmail" auth="false">
+        <description>Class exists, method does not (method_missing)</description>
+    </service>
+    <service name="runGhostInvoicer" engine="java"
+             location="com.example.legacy.billing.GhostInvoicer" invoke="run" auth="true">
+        <description>Class missing from an analysed module (class_missing)</description>
+    </service>
+    <service name="syncExternalLedger" engine="java"
+             location="org.other.legacy.Elsewhere" invoke="run" auth="true">
+        <description>Class lives in a module we did not analyse (out_of_scope, NOT broken)</description>
+    </service>
 </services>

@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from analyzer.config import DependencyTable
+from analyzer.config import DependencySnapshot
 from analyzer.schema import Dependency
 
 Declared = tuple[str, str | None]  # (group:artifact, version or None)
@@ -79,14 +79,21 @@ def major(version: str | None) -> int | None:
     return int(match.group(0)) if match else None
 
 
-def evaluate(file: str, declared: list[Declared], table: DependencyTable) -> list[Dependency]:
+def evaluate(file: str, declared: list[Declared], snapshot: DependencySnapshot,
+             date_based_min: int = 1900) -> list[Dependency]:
     out: list[Dependency] = []
     for coordinate, version in declared:
-        declared_major, floor = major(version), table.min_current_major.get(coordinate)
-        checked = declared_major is not None and floor is not None
+        declared_major, entry = major(version), snapshot.entries.get(coordinate)
+        latest = entry.latest_major if entry else None
+        superseded = entry.superseded_by if entry else None
+        calendar = any(m is not None and m >= date_based_min for m in (declared_major, latest))
+        checked = (declared_major is not None and entry is not None and not calendar
+                   and (latest is not None or superseded is not None))
+        outdated: bool | None = None
+        if checked and declared_major is not None:
+            outdated = superseded is not None or (latest is not None and declared_major < latest)
         out.append(Dependency(
             file=file, coordinate=coordinate, declared_version=version, declared_major=declared_major,
-            min_current_major=floor, checked=checked,
-            outdated=(declared_major < floor) if checked and declared_major is not None
-            and floor is not None else None))
+            latest_stable_version=entry.latest_stable_version if entry else None, latest_major=latest,
+            superseded_by=superseded, checked=checked, outdated=outdated))
     return out

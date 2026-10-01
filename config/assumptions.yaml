@@ -1,9 +1,16 @@
-# Every tunable weight and rate lives here. Nothing below is hard-coded in Python.
-# Placeholder values until Phase 3; each must be justified in docs/methodology.md.
+# =====================================================================================================
+# ILLUSTRATIVE ASSUMPTIONS -- NOT MARKET DATA.
+# Every rate, multiplier, weight and base value in the Phase 3 engine below was chosen to make the model
+# behave sensibly and be explainable. None of it comes from benchmarks or from any client.
+# A real engagement would calibrate against: the firm's rate card (daily rates), delivery data from comparable
+# migrations (days per KLOC by strategy), the client's actual team capacity (team size), a defect/incident history
+# or a risk workshop (risk factors), and the client's own maintenance cost records (value). Until then every yen
+# figure in the product is shown with these assumptions next to it.
+# =====================================================================================================
 currency: JPY
-daily_rate_jpy: 80000
-base_days_per_kloc:
-  rehost: 2
+daily_rate_jpy: 80000        # ILLUSTRATIVE: blended consulting day rate. Calibrate: firm rate card x team mix.
+base_days_per_kloc:          # ILLUSTRATIVE: effort per 1,000 code lines before multipliers.
+  rehost: 2                  #   Calibrate: velocity from similar completed migrations, estimation workshop.
   replatform: 8
   refactor: 20
   rearchitect: 45
@@ -27,15 +34,30 @@ analysis:
   test_groovy_dir: src/test/groovy   # Groovy tests are counted as test evidence, never parsed
   services_dir_name: servicedef        # directories holding OFBiz service definitions
   skip_dirs: [.git, node_modules, build, target, .gradle, out]
+  date_based_version_min: 1900   # a leading number >= this is treated as a calendar version, not a major
+
+  # Analysis coverage: how much of a component's logic is Java (analysed) versus Groovy / XML / generated
+  # (not analysed). Share = Java service definitions / implemented service definitions
+  # (engines `interface` and `group` implement nothing and are excluded from the denominator).
+  # A module belongs to the component directory that holds most of its classes.
+  coverage:
+    high_min_java_share: 0.60     # >= 0.60 -> confidence "high"
+    medium_min_java_share: 0.30   # >= 0.30 -> "medium", otherwise "low"
+    # a file's component is the path before the first of these directories (service defs, controllers, Groovy...)
+    component_dir_markers: [src, servicedef, webapp, testdef, config, widget, entitydef, groovyScripts, script]
+    non_implementing_engines: [interface, group]
 
   # Approximate cyclomatic complexity of a class: bodies + decision points.
   complexity_bands:
     low_max: 15        # <= 15 is low
     medium_max: 50     # 16..50 is medium, > 50 is high
 
-  god_class:           # BOTH must hold
+  god_class:           # "large" tier: BOTH must hold
     min_loc: 400               # loc >= 400
     min_complexity_above: 50   # complexity > 50
+    extreme:                   # "extreme" tier (also large): BOTH must hold
+      min_loc: 1500
+      min_complexity_above: 200
 
   highly_coupled:      # BOTH must hold (Java fan-in/out, not service fan-in)
     min_fan_in: 5
@@ -72,23 +94,124 @@ analysis:
     legacy_frameworks:
       struts: [org.apache.struts, org.apache.struts2, com.opensymphony.xwork2]
 
-# Dependency age. `min_current_major` is a CONSERVATIVE LOWER BOUND of the current major version of
-# each coordinate: a dependency is outdated iff declared major < this number. Renames such as
-# javax.* -> jakarta.* are treated as a major upgrade. Coordinates not listed are reported as unchecked.
-# Re-verify this table before quoting dependency findings to a client.
-dependency_table:
-  as_of: "2026-10-01"
-  min_current_major:
-    org.springframework:spring-core: 6
-    org.springframework:spring-web: 6
-    org.apache.struts:struts2-core: 6
-    javax.servlet:javax.servlet-api: 6
-    mysql:mysql-connector-java: 8
-    org.codehaus.groovy:groovy-all: 4
-    org.apache.tomcat:tomcat-catalina: 10
-    com.sun.mail:javax.mail: 2
-    javax.activation:activation: 2              # -> jakarta.activation
-    javax.transaction:javax.transaction-api: 2  # -> jakarta.transaction
-    javax.xml.soap:javax.xml.soap-api: 2        # -> jakarta.xml.soap
-    org.slf4j:slf4j-api: 2
-    junit:junit: 4
+# Versions whose leading number is a year/date (e.g. 20240325.1) are not semantic majors: they are reported as
+# unchecked rather than compared. Threshold is `analysis.date_based_version_min`.
+# Dependency age comes from a dated snapshot of the latest stable versions on Maven Central, produced once by
+# `python scripts/snapshot_deps.py` and committed (config/dependency_snapshot.yaml). The analyzer never touches the
+# network. A dependency is outdated when its declared major < the snapshot's latest major, or the coordinate has been
+# superseded under a new name (javax.* -> jakarta.*, listed in config/dependency_renames.yaml). Coordinates missing
+# from the snapshot are reported as unchecked.
+dependency_snapshot_file: dependency_snapshot.yaml   # relative to this file
+
+# ---------------------------------------------------------------------------
+# Phase 3: scoring and strategies (all ILLUSTRATIVE, see the banner at the top of this file).
+# ---------------------------------------------------------------------------
+engine:
+  strategies: [rehost, replatform, refactor, rearchitect, retire]   # also the tie-break order
+
+  # --- effort -> cost -> duration -------------------------------------------------------------------
+  # effort_days = KLOC x base_days_per_kloc[strategy] x complexity_multiplier x (1 + test_overhead)
+  #               x coverage_uncertainty_buffer   (+ a safety-net-tests line for rearchitect without tests)
+  working_days_per_month: 20
+  team_size:                   # ILLUSTRATIVE. duration_months = effort_days / (team_size x working_days_per_month)
+    rehost: 2                  #   Calibrate: client capacity and the strategy's real parallelism.
+    replatform: 4
+    refactor: 6
+    rearchitect: 8
+    retire: 2
+  complexity_multiplier:       # multiplier = 1 + (max - 1) x module complexity percentile (0..1) x sensitivity
+    max: 1.6                   #   ILLUSTRATIVE: most complex module costs 60% more at full sensitivity
+    sensitivity: {rehost: 0.1, replatform: 0.5, refactor: 1.0, rearchitect: 1.0, retire: 0.1}
+  test_overhead:               # extra share of effort spent on testing; grows when the module has no tests
+    base: {rehost: 0.10, replatform: 0.20, refactor: 0.35, rearchitect: 0.40, retire: 0.05}
+    untested_extra: 1.0        # test_overhead = base x (1 + untested_extra x test_gap)   (test_gap 0..1)
+  coverage_uncertainty_buffer: # multiplies effort when the analyzer can see little of the logic
+    high: 1.00
+    medium: 1.15
+    low: 1.35
+  safety_net_days_per_kloc: 4.0   # rearchitect without test evidence: tests written first (own effort line)
+
+  # --- risk (0-100, higher = riskier) ----------------------------------------------------------------
+  # exposure = sum(weight x 0..1 measure) over the factors below (weights sum to 1), so exposure is 0..1
+  # risk = min(100, base_risk[strategy] x (1 + exposure_gain x exposure))
+  # i.e. a strategy's inherent riskiness, scaled up to (1 + gain)x when the module is fragile, critical, untested,
+  # tangled in cycles and poorly understood. Base values are chosen so base x (1 + gain) stays below 100.
+  risk:
+    base: {rehost: 8, replatform: 18, refactor: 30, rearchitect: 48, retire: 12}   # ILLUSTRATIVE
+    exposure_gain: 1.0
+    factor_weights: {health: 0.30, criticality: 0.25, tests: 0.20, cycles: 0.10, confidence: 0.15}
+    confidence_gap: {high: 0.0, medium: 0.5, low: 1.0}
+
+  # --- long-term value (0-100, higher = better): debt and maintenance burden removed -------------------
+  # value = debt_reduction[strategy] x burden; burden = debt_weight x (100 - health)
+  #                                                     + (1 - debt_weight) x maintenance_points
+  long_term_value:
+    debt_reduction: {rehost: 0.05, replatform: 0.25, refactor: 0.55, rearchitect: 0.85, retire: 1.0}
+    debt_weight: 0.6
+    maintenance_kloc_cap: 30   # maintenance_points = min(100, 100 x KLOC / cap): bigger modules cost more to keep
+
+  # --- priorities: weights over the four criteria, each preset sums to 1 --------------------------------
+  priorities:
+    default: balanced
+    presets:
+      minimize_cost:    {cost: 0.60, risk: 0.15, speed: 0.15, long_term_value: 0.10}
+      minimize_risk:    {cost: 0.10, risk: 0.60, speed: 0.10, long_term_value: 0.20}
+      speed_to_market:  {cost: 0.20, risk: 0.10, speed: 0.60, long_term_value: 0.10}
+      long_term_value:  {cost: 0.10, risk: 0.15, speed: 0.05, long_term_value: 0.70}
+      balanced:         {cost: 0.25, risk: 0.25, speed: 0.25, long_term_value: 0.25}
+  # --- scoring scales: how raw numbers become 0..1 "goodness" (absolute, NOT relative to the other options) ----
+  # cost goodness  = max(0, 1 - cost_jpy / cost_ceiling_jpy)
+  # speed goodness = max(0, 1 - duration_months / duration_ceiling_months)
+  # risk goodness  = 1 - risk / 100          value goodness = value / 100
+  # Absolute scales keep module differences visible (a small healthy module and a huge fragile one do not look alike)
+  # and let the daily rate matter. ILLUSTRATIVE ceilings: a real engagement would use the client's budget authority
+  # for one module-level programme and their acceptable delivery window.
+  scoring:
+    cost_ceiling_jpy: 200000000
+    duration_ceiling_months: 24
+  close_call_margin: 5.0       # score points (0-100) between best and runner-up below which we flag a close call
+
+  # --- technical health (0-100, higher = healthier) ------------------------------------------------------
+  # health = 100 - sum of (100 x weight x normalized), each normalized 0 (good) .. 1 (bad)
+  health:
+    weights:                   # must sum to 1
+      size: 0.10
+      complexity: 0.20
+      coupling: 0.15
+      cycles: 0.10
+      test_evidence: 0.20
+      db_coupling: 0.10
+      legacy_markers: 0.05
+      outdated_dependencies: 0.10
+    test_target_per_kloc: 5.0      # ILLUSTRATIVE: tests (Java @Test + Groovy test files) per KLOC that earns full credit
+    db_calls_per_kloc_cap: 15.0    # ILLUSTRATIVE: database calls per KLOC at which the db_coupling component is maxed
+  hotspots:
+    top_n: 15
+    weights:                       # class-level score = sum(weight x 0..100 value); sums to 1
+      complexity_percentile: 0.30
+      loc_percentile: 0.25
+      fan_out_percentile: 0.15
+      fan_in_percentile: 0.10
+      db_density: 0.10
+      in_cycle: 0.10
+
+  # --- business criticality (1-3): a proposal the consultant confirms ------------------------------------
+  # score = w_in x (module share of estate inbound references) + w_write x (module share of estate data writes)
+  criticality:
+    inbound_weight: 0.6
+    write_weight: 0.4
+    high_min_score: 0.30       # score >= 0.30 -> 3 ; >= 0.12 -> 2 ; else 1  (ILLUSTRATIVE: relative to the estate)
+    medium_min_score: 0.12
+    write_matches:             # entity-engine calls that change data (matched against DbInstance.match)
+      - delegator.makeValue(
+      - delegator.create(
+      - delegator.store(
+      - delegator.removeValue(
+      - delegator.removeByAnd(
+      - delegator.getNextSeqId(
+    jdbc_counts_as_write: true   # SQL strings are not parsed, so JDBC calls are conservatively treated as writes
+
+  # --- sensitivity search ----------------------------------------------------------------------------------
+  sensitivity:
+    range_factor: 10.0         # multiplicative parameters are tried between value/10 and value x 10
+    steps: 200

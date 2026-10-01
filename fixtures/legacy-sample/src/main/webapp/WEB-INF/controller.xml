@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site-conf>
+    <description>Web request mappings (OFBiz style)</description>
+
+    <request-map uri="ViewParty">
+        <security https="true" auth="true"/>
+        <event type="java" path="com.example.legacy.party.PartyController" invoke="dashboard"/>
+        <response name="success" type="view" value="ViewParty"/>
+    </request-map>
+
+    <request-map uri="FindParty">
+        <event type="java" path="com.example.legacy.party.PartyController" invoke="dashboard"/>
+        <response name="success" type="view" value="FindParty"/>
+    </request-map>
+
+    <request-map uri="PurgeParty">
+        <event type="java" path="com.example.legacy.party.PartyController" invoke="purge"/>
+        <response name="success" type="request" value="FindParty"/>
+    </request-map>
+
+    <request-map uri="ApproveOrder">
+        <event type="java" path="com.example.legacy.order.OrderServices" invoke="approveOrder"/>
+        <response name="success" type="view" value="ViewOrder"/>
+    </request-map>
+
+    <request-map uri="LookupParty">
+        <event type="service" invoke="findParty"/>
+        <response name="success" type="view" value="LookupParty"/>
+    </request-map>
+
+    <request-map uri="FraudCheck">
+        <event type="groovy" path="component://legacy/src/main/groovy/com/example/legacy/order/CheckOrderFraud.groovy"/>
+        <response name="success" type="view" value="FraudCheck"/>
+    </request-map>
+</site-conf>

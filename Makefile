@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 REPO ?=
 
-.PHONY: setup dev test lint analyze crosscheck
+.PHONY: setup dev test lint analyze crosscheck recommend
 
 setup:
 	python3 -m venv .venv
@@ -20,7 +20,7 @@ test:
 
 lint:
 	.venv/bin/ruff check .
-	.venv/bin/mypy analyzer api llm
+	.venv/bin/mypy analyzer engine api llm
 	cd web && npm run lint
 
 # make analyze REPO=<git url or path> [SCOPE="dir1 dir2"] [NAME=name]
@@ -35,3 +35,8 @@ analyze:
 # make crosscheck REPO=<path> NAME=<name> [SCOPE="dir ..."]   (cloc + grep vs analyzer output)
 crosscheck:
 	$(PY) scripts/crosscheck.py "$(REPO)" out/$(NAME).json $(if $(SCOPE),--scope $(SCOPE))
+
+# make recommend NAME=<analysis> [PROFILE=<preset|cost=..,risk=..,speed=..,long_term_value=..>] [OVERRIDES=file]
+recommend:
+	@test -n "$(NAME)" || (echo "usage: make recommend NAME=<analysis name, e.g. ofbiz> [PROFILE=...]"; exit 1)
+	$(PY) -m engine out/$(NAME).json $(if $(PROFILE),--profile "$(PROFILE)") $(if $(OVERRIDES),--overrides $(OVERRIDES))
