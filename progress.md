@@ -12,14 +12,63 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`. Convention: the user runs a
 | 2 | Analyzer | Done, committed |
 | 2.5 | Review decisions (controller fan-in, tiers, coverage, broken refs, dependency snapshot) | Done, committed |
 | 3 | Scoring and strategies (`engine/`) | Done, committed |
-| 3.5 | Client scenario, TCO + retain, objective-driven value, constraints, work packages, calibration fixes | Built and verified; awaiting user review and commit |
-| 4 | Roadmap | Not started |
+| 3.5 | Client scenario, TCO + retain, objective-driven value, constraints, work packages, calibration fixes | Done, committed |
+| 3.6 | Model fixes: breakeven, calibration, cutover approach, change-cost avoidance (model frozen after this) | Built and verified; awaiting commit |
+| 4 | Portfolio and roadmap (`engine/roadmap/`) | Built and verified; awaiting user review and commit |
 | 5 | API | Not started |
 | 6 | Web UI | Not started |
 | 7 | LLM layer | Not started |
 | 8 | Polish and deploy | Not started |
 
 ## Log
+
+### 2026-10-01 — Phase 3.6 (model fixes) and Phase 4 (portfolio and roadmap)
+Integrity rule held: no weight or parameter was tuned to produce an answer; the model is frozen after Part A except for bug fixes.
+**Part A (each item has a methodology entry and tests)**
+1. **Breakeven instead of tuning.** Per package: the yearly maintenance spend at which each other strategy overtakes the chosen one, and where retain stops
+   being best / loses to every alternative. Optional `client_reported_maintenance_jpy` per module (default null) calibrates the baseline and shows the
+   model estimate and client figure side by side with the gap flagged. The ¥180M KPI is labelled whole-ERP; `analysed_scope_share` = 0.29 is derived
+   (71,940 / 248,132 Java code lines), giving a scope-adjusted ¥52.2M against the model's ¥67.0M (+28%, flagged).
+2. **Cutover approach.** Big bang (rehost, replatform): hours = base + 0.25 h/KLOC, one event. Incremental (refactor, rearchitect): ceil(KLOC/3) slices of
+   0.5 h each plus a 15% parallel-run effort line. The downtime limit applies per event. Slices and hours per slice are reported.
+3. **Change-cost avoidance.** Change requests per year per module (illustrative); cost per change depends on health; the post-migration multiplier uses
+   residual debt; the saving is a separate benefit line in TCO. The value score no longer counts that objective (remaining weights renormalised).
+4. Cost/speed collinearity documented as a known limitation; presets unchanged.
+Tests: 261 pass (`make test`, `make lint`). New: breakeven really flips, calibration and gap flag, scope reconciliation, cutover per event, change cost
+as its own line, value without double counting.
+**What changed on OFBiz and why (client profile):** 7 rehost + 8 retain → 11 rehost + 4 retain. Two causes: (a) downtime now scales with package size and is
+per event, so the `order` packages other than the cart cycle (2.6–3.6 h) fit the 4 h limit and can rehost, while the 13 KLOC cart cycle (5.3 h) and every `accounting`
+package (limit 2 h, base 2 h + size) still cannot; (b) change-cost savings strengthen rehost against retain. TCO baseline for doing nothing rose from
+¥388.9M to ¥658.6M because change cost is now part of it; migration ¥11.9M, 5-year saving ¥8.5M (was ¥1.9M). `long_term_value` now rearchitects all 15.
+Breakevens (client profile): the retained accounting packages flip to refactor only at 5.2–11.7x the model's maintenance baseline (¥22–25M/yr per package);
+the cart cycle at 3.2x (¥44M/yr) to refactor; no strategy overtakes the 11 rehost packages inside x100.
+**Part B (`engine/roadmap/`, 35 tests)**
+- Exact budget-constrained portfolio (DP over the cost/score frontier), checked against brute force on the fixture for 8 budgets; reports unconstrained vs
+  constrained and the downgraded packages.
+- Wave scheduler: package dependencies (leaves first), entangled groups together or staggered, team capacity (2 teams x 6), optional yearly cap, Wave 0
+  foundations (CI/CD, observability, API facade, safety-net suites) from formulas, quick wins first, reason codes on every placement, final "What
+  modernization unlocks" wave from a config mapping. Gantt-ready JSON. `make roadmap NAME=ofbiz [PROFILE=...]`.
+- Economics: cumulative cash flow by quarter vs retain, payback quarter, NPV, peak investment, KPI trajectory where modelled.
+- A bug found and fixed during the work: entangled packages were silently dropped by the scheduler (they listed each other as dependencies); now handled and
+  any unplaceable job is reported as unscheduled.
+
+### Phase 4 result on OFBiz (ILLUSTRATIVE assumptions, FICTIONAL client)
+**Client profile** (budget not binding): 11 rehost + 4 retain, all 11 done by month 5 (waves 1-5, ¥11.9M total, peak 6 people), no foundations needed,
+payback quarter 13, NPV ¥5.9M, peak investment ¥11.2M (quarter 2). The shopping-cart cycle is retained, nothing is unlocked, and the maintenance KPI moves
+from ¥180M to ¥177.9M in five years (target ¥110M). **`long_term_value` profile** (budget binds): the unconstrained portfolio is 15 rearchitect for ¥943M;
+the ¥250M ceiling forces 9 downgrades to 6 rearchitect + 1 refactor + 7 rehost + 1 retain (¥248M), with Wave 0 foundations months 1-3 (¥20.3M), finish
+month 26, programme ¥268M, no payback, NPV -¥170M, peak investment ¥246M, maintenance KPI ¥163M after five years; only automated reconciliation is unlocked (from month 27).
+What the budget forced out: the shopping-cart cycle (rearchitect to retain, ¥173M saved), `product/remainder-1` (to rehost, ¥214M), `order` god-class and remainder
+packages (to rehost), and the smaller product/party/shipment packages.
+**Shopping-cart cluster:** never addressed under either profile. In the client profile it is retained (the only feasible deep options do not pay back);
+in the budget-constrained ltv profile the optimiser drops it first.
+What a real programme manager would challenge:
+- The budget optimiser is package-size-blind, so it spends on many small packages and abandons the biggest, highest-hotspot one.
+- The client-profile roadmap is a rehost-only programme: it barely moves the client's KPIs and unlocks none of the data/AI opportunities.
+- Team capacity (12 people) and the foundation formulas are assumptions; staggered entangled groups show the capacity is the binding constraint.
+- Savings begin only after cutover and are modelled as a step; real programmes see ramp-up and parallel-run costs beyond the one modelled.
+- Rehosting god-class clusters (OrderServices, PartyServices) first is cheap but leaves them in place for later waves.
+- The unlock mapping and the KPI trajectory (whole-ERP KPI minus a scope saving) are simplifications.
 
 ### 2026-10-01 — Phase 3.5: client scenario, TCO, work packages
 Built (every change has its modelling justification in `docs/methodology.md`, table "What changed in Phase 3.5, and why"):
@@ -120,12 +169,14 @@ The `long_term_value` preset rearchitects every module: ¥900M, 11,251 days, 70 
 9. Test evidence undercounts OFBiz (`testdef/*.xml` suites are not counted), so test gaps are overstated.
 
 ## Open decisions (for the user)
-1. **Maintenance baseline.** Calibrate `tco.maintenance_days_per_kloc_year` and the run-cost rate from the client's records, or scale the
-   scenario's whole-ERP KPIs down to the analysed scope. This one choice decides whether refactor ever appears.
-2. **Downtime hours per strategy** (rehost 6 h, replatform 10 h, ...) drive the retain/rehost split; they need real cutover plans.
-3. **Portfolio-level budget:** add a constrained selection (best portfolio under the ¥250M ceiling) instead of only flagging it.
-4. **Value in cash terms:** express faster change delivery (the lead-time KPI) as a yearly benefit so refactor can be judged on money.
-5. **Cost/speed collinearity** remains: merge them, or add a minimum-value constraint.
+1. **Portfolio objective is package-size-blind.** Weight each package's score by size (KLOC) or by value at stake so the optimiser stops abandoning the
+   largest package first? (Not changed: it is the objective as specified.)
+2. **Calibrate the maintenance baseline.** Supply `client_reported_maintenance_jpy` per module; the breakevens show how far off the model can be before
+   choices change (retained accounting packages flip to refactor at 5-12x the baseline).
+3. **Strategy mix is still thin.** Replatform and refactor are almost never chosen; only the long-term-value weight pushes towards ambition (cost/speed
+   collinearity, documented, presets unchanged).
+4. **Capacity and foundations:** real team sizes and foundation estimates (12 people, formulas in config) decide the timeline.
+5. **Phase 5 onward** (API, web UI, LLM layer) can start: all numbers and breakdowns now exist as JSON contracts (analysis, recommendation, roadmap).
 
 ## Known gaps / risks
 - **Logic outside Java** (main blind spot): in the four OFBiz components only 360 of 2,271 service definitions are Java;
@@ -135,6 +186,8 @@ The `long_term_value` preset rearchitects every module: ¥900M, 11,251 days, 70 
 - Dependency "major behind" is coarse; 4 of 99 OFBiz coordinates are unchecked; results are as of the snapshot date.
 - Everything in `engine:` is illustrative (labelled in config and echoed into every output) and the client is fictional. No market data is claimed.
 - The scenario's KPI current/target values are descriptive; the model uses only the objective weights.
+- Cost/speed collinearity is a documented limitation of the scoring (presets unchanged by decision).
+- Roadmap: capacity, foundation estimates, quick-win thresholds and the unlock mapping are illustrative configuration; savings are a step after cutover.
 - Work-package tests and confidence are inherited from the module; a cross-module cycle is split per module and scored in fragments.
 - testdef cases and Groovy tests overlap, so the engine takes their max, not their sum; test presence is not coverage.
 - `getNextSeqId` counts as entity-engine access by design (70 of 1,392 OFBiz instances).

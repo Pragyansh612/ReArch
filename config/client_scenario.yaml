@@ -25,10 +25,14 @@ problem:
 
 # Measurable objectives. `weight` is the relative importance (sums to 1) and drives the value model;
 # `current` and `target` are the KPI values the programme is judged against (ILLUSTRATIVE).
+# `scope` says what the KPI covers: whole_erp (all of the client's ERP) or organisation (a process measure).
+# The analysed code is only part of the whole ERP: `analysed_scope_share` below converts whole-ERP money KPIs to the analysed
+# scope so the KPI and the model talk about the same thing.
 objectives:
   - id: maintenance_cost
     label: Annual ERP maintenance cost
     unit: JPY million per year
+    scope: whole_erp
     current: 180
     target: 110
     weight: 0.30
@@ -36,6 +40,7 @@ objectives:
   - id: change_lead_time
     label: Lead time for a standard feature, request to release
     unit: days
+    scope: organisation
     current: 90
     target: 30
     weight: 0.35
@@ -43,6 +48,7 @@ objectives:
   - id: expert_dependency
     label: Engineers who can safely change order and accounting code
     unit: people
+    scope: organisation
     current: 2
     target: 6
     weight: 0.20
@@ -50,10 +56,15 @@ objectives:
   - id: run_cost
     label: Annual hosting and infrastructure cost
     unit: JPY million per year
+    scope: whole_erp
     current: 36
     target: 24
     weight: 0.15
     illustrative: true
+
+# Share of the whole ERP that the analysis covers. DERIVED, not invented: 71,940 analysed Java code lines (order, product, party,
+# accounting) / 248,132 Java code lines in the whole OFBiz codebase (cloc), rounded to two decimals.
+analysed_scope_share: 0.29
 
 constraints:
   planning_horizon_years: 5
@@ -61,6 +72,25 @@ constraints:
   max_cutover_downtime_hours:            # longest acceptable outage for a cutover, by module
     order: 4
     accounting: 2
+
+# Change requests per year by module (ILLUSTRATIVE; calibrate from the client's ticket history). `default` applies to modules
+# not listed. They drive the change-cost line of the TCO.
+change_requests_per_year:
+  default: 12
+  order: 120
+  product: 60
+  accounting: 50
+  party: 40
+  shipment: 30
+
+# Optional: the client's own yearly maintenance spend per module (JPY), when known. null (the default) keeps the model's
+# estimate. When set, it calibrates that module's baseline and the output shows both figures side by side with the gap.
+client_reported_maintenance_jpy:
+  order: null
+  product: null
+  accounting: null
+  party: null
+  shipment: null
 
 # How this client weighs the four decision criteria (sums to 1). Becomes the `client_scenario` profile.
 priorities:

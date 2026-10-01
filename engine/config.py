@@ -79,6 +79,38 @@ class RetainRule(BaseModel):
     risk_scale: float
 
 
+class BigBangRule(BaseModel):
+    base_hours: dict[Strategy, float]
+    hours_per_kloc: float
+
+
+class IncrementalRule(BaseModel):
+    slice_kloc: float
+    hours_per_slice: float
+    parallel_run_effort_share: float
+
+
+class CutoverRule(BaseModel):
+    approach: dict[Strategy, str]
+    big_bang: BigBangRule
+    incremental: IncrementalRule
+
+
+class ChangeCostRule(BaseModel):
+    base_days_per_change: float
+    health_penalty: float
+    monetised_objective: str
+
+
+class CalibrationRule(BaseModel):
+    gap_flag_pct: float
+
+
+class BreakevenRule(BaseModel):
+    range_factor: float
+    steps: int
+
+
 class WorkPackageRule(BaseModel):
     satellite_min_share: float
 
@@ -142,7 +174,10 @@ class EngineConfig(BaseModel):
     safety_net_days_per_kloc: float
     tco: TcoRule
     retain: RetainRule
-    cutover_downtime_hours: dict[Strategy, float]
+    cutover: CutoverRule
+    change_cost: ChangeCostRule
+    calibration: CalibrationRule
+    breakeven: BreakevenRule
     work_packages: WorkPackageRule
     risk: RiskRule
     long_term_value: ValueRule

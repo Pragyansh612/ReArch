@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -186,30 +187,42 @@ def test_retain_survives_when_every_other_option_is_infeasible(
 
 def test_tco_reconstructs_exactly(rec: Recommendation, cfg: EngineConfig, scenario: ClientScenario) -> None:
     horizon, rate = scenario.constraints.planning_horizon_years, cfg.tco.discount_rate
+    cc = cfg.change_cost
     for w in rec.work_packages.values():
         retain = opt(w, "retain")
         assert retain.tco is not None
+        mult0 = 1 + cc.health_penalty * (1 - w.health.score / 100)
         base_m = w.kloc * cfg.tco.maintenance_days_per_kloc_year * (
             1 + cfg.tco.debt_maintenance_penalty * (1 - w.health.score / 100)) * cfg.daily_rate_jpy
+        assert w.maintenance_baseline_jpy_per_year == pytest.approx(base_m, rel=1e-9)  # model baseline unchanged
         assert retain.tco.baseline_maintenance_jpy_per_year == pytest.approx(base_m, rel=1e-9)
         assert retain.tco.baseline_run_jpy_per_year == pytest.approx(w.kloc * cfg.tco.run_cost_jpy_per_kloc_year, rel=1e-9)
+        assert retain.tco.baseline_change_jpy_per_year == pytest.approx(
+            w.change_requests_per_year * cc.base_days_per_change * mult0 * cfg.daily_rate_jpy, rel=1e-4)
         for o in (x for x in w.options if x.eligible):
             t = o.tco
             assert t is not None and t.horizon_years == horizon == len(t.yearly) and t.discount_rate == rate
             duration = o.duration_months or 0.0
             reduction = cfg.long_term_value.debt_reduction.get(o.strategy, 0.0)
             run_factor = cfg.tco.residual_run_cost[o.strategy]
+            change_factor = (1 + cc.health_penalty * (1 - reduction) * (1 - w.health.score / 100)) / mult0
             for row in t.yearly:
                 f = min(1.0, max(0.0, (12.0 * row.year - duration) / 12.0))
                 assert row.maintenance_jpy == round(t.baseline_maintenance_jpy_per_year * (1 - reduction * f))
                 assert row.run_jpy == round(t.baseline_run_jpy_per_year * (1 - (1 - run_factor) * f))
-                assert row.total_jpy == row.migration_jpy + row.run_jpy + row.maintenance_jpy
+                assert row.change_jpy == round(t.baseline_change_jpy_per_year * (1 - (1 - change_factor) * f))
+                assert row.total_jpy == row.migration_jpy + row.run_jpy + row.maintenance_jpy + row.change_jpy
+            assert t.steady_state_maintenance_jpy == round(t.baseline_maintenance_jpy_per_year * (1 - reduction))
+            assert t.steady_state_run_jpy == round(t.baseline_run_jpy_per_year * run_factor)
+            assert t.steady_state_change_jpy == round(t.baseline_change_jpy_per_year * change_factor)
             assert t.migration_total_jpy == sum(r.migration_jpy for r in t.yearly) == (o.migration_cost_jpy or 0)
             assert t.run_total_jpy == sum(r.run_jpy for r in t.yearly)
             assert t.maintenance_total_jpy == sum(r.maintenance_jpy for r in t.yearly)
-            assert t.tco_jpy == t.migration_total_jpy + t.run_total_jpy + t.maintenance_total_jpy
+            assert t.change_total_jpy == sum(r.change_jpy for r in t.yearly)
+            assert t.tco_jpy == t.migration_total_jpy + t.run_total_jpy + t.maintenance_total_jpy + t.change_total_jpy
             assert t.npv_cost_jpy == round(sum(r.total_jpy / (1 + rate) ** r.year for r in t.yearly))
             assert t.savings_vs_retain_jpy == retain.tco.tco_jpy - t.tco_jpy
+            assert t.change_savings_vs_retain_jpy == retain.tco.change_total_jpy - t.change_total_jpy
             assert t.npv_vs_retain_jpy == retain.tco.npv_cost_jpy - t.npv_cost_jpy
             cumulative, payback = 0, None
             for mine, base in zip(t.yearly, retain.tco.yearly, strict=True):
@@ -267,18 +280,52 @@ def test_budget_constraint_makes_options_infeasible_with_a_reason(
     assert w.choices["long_term_value"].chosen not in ("refactor", "rearchitect")
 
 
-def test_downtime_constraint_makes_big_bang_strategies_infeasible_for_a_constrained_module(
-        rec: Recommendation, cfg: EngineConfig, scenario: ClientScenario) -> None:
+def test_downtime_limit_applies_per_cutover_event(rec: Recommendation, cfg: EngineConfig, scenario: ClientScenario) -> None:
     limit = scenario.constraints.max_cutover_downtime_hours["order"]
     for w in (x for x in rec.work_packages.values() if x.module == "order"):
-        for o in w.options:
-            hours = cfg.cutover_downtime_hours[o.strategy]
-            if o.eligible:
-                assert o.feasible == (hours <= limit), (w.id, o.strategy)
-                if not o.feasible:
-                    assert any("downtime" in r and f"{limit:g} h" in r for r in o.infeasible_reasons)
-    unconstrained = [w for w in rec.work_packages.values() if w.module == "common"]
-    assert all(opt(w, "rehost").feasible for w in unconstrained)  # no downtime limit for common
+        for o in (x for x in w.options if x.eligible):
+            assert o.cutover_hours_per_event is not None
+            assert o.feasible == (o.cutover_hours_per_event <= limit), (w.id, o.strategy)
+            if not o.feasible:
+                assert any("per-event maximum" in r and f"{limit:g} h" in r for r in o.infeasible_reasons)
+    assert all(opt(w, "rehost").feasible for w in rec.work_packages.values() if w.module == "common")  # no limit for common
+
+
+def test_cutover_approach_and_events(rec: Recommendation, cfg: EngineConfig) -> None:
+    c = cfg.cutover
+    for w in rec.work_packages.values():
+        for o in (x for x in w.options if x.eligible):
+            assert o.cutover_approach == c.approach[o.strategy]
+            if o.strategy == "retain":
+                assert (o.cutover_events, o.cutover_hours_per_event, o.cutover_total_hours) == (0, 0.0, 0.0)
+            elif o.cutover_approach == "big_bang":
+                assert o.cutover_events == 1
+                assert o.cutover_hours_per_event == round(c.big_bang.base_hours.get(o.strategy, 0.0) + c.big_bang.hours_per_kloc * w.kloc, 4)
+            else:
+                assert o.cutover_events == max(1, math.ceil(w.kloc / c.incremental.slice_kloc))
+                assert o.cutover_hours_per_event == c.incremental.hours_per_slice
+            assert o.cutover_total_hours == round((o.cutover_events or 0) * (o.cutover_hours_per_event or 0), 4)
+            labels = [x.label for x in o.effort_lines]
+            assert ("Parallel run of old and new" in labels) == (o.cutover_approach == "incremental")
+
+
+def test_big_bang_hours_scale_with_the_package_and_slices_stay_short(cfg: EngineConfig) -> None:
+    from engine.strategies import cutover_plan
+
+    small, big = cutover_plan("rehost", 1.0, cfg), cutover_plan("rehost", 30.0, cfg)
+    assert big[2] > small[2] and big[1] == small[1] == 1
+    slices_small, slices_big = cutover_plan("refactor", 1.0, cfg), cutover_plan("refactor", 30.0, cfg)
+    assert slices_big[1] > slices_small[1] and slices_big[2] == slices_small[2] == cfg.cutover.incremental.hours_per_slice
+
+
+def test_a_tight_limit_rules_out_big_bang_but_not_incremental(
+        analysis: AnalysisResult, cfg: EngineConfig, scenario: ClientScenario) -> None:
+    tight = scenario.model_copy(deep=True)
+    tight.constraints.max_cutover_downtime_hours = {"order": 1.0}
+    out = run(analysis, cfg, tight)
+    for w in (x for x in out.work_packages.values() if x.module == "order"):
+        assert not opt(w, "rehost").feasible and not opt(w, "replatform").feasible
+        assert opt(w, "refactor").feasible and opt(w, "rearchitect").feasible  # 0.5 h slices
 
 
 def test_a_portfolio_over_budget_is_flagged_not_hidden(
@@ -297,14 +344,18 @@ def test_a_portfolio_over_budget_is_flagged_not_hidden(
 # --- value: criticality and objectives ----------------------------------------------------------------------------
 
 def test_value_reconstructs_from_debt_criticality_and_objectives(rec: Recommendation, cfg: EngineConfig) -> None:
+    skip = cfg.change_cost.monetised_objective
     for w in rec.work_packages.values():
         crit = rec.modules[w.module].criticality.value
         for o in (x for x in w.options if x.eligible):
             v = o.value
             assert v is not None and v.criticality == crit
             assert v.criticality_weight == cfg.long_term_value.criticality_weight[crit]
-            assert v.objective_fit == pytest.approx(sum(x.weight * x.effect for x in v.objectives))
-            assert all(x.contribution == round(x.weight * x.effect, 6) for x in v.objectives)
+            counted = sum(x.weight for x in v.objectives if x.objective != skip)
+            for x in v.objectives:
+                assert x.counted == (x.objective != skip)
+                assert x.contribution == (round(x.weight * x.effect / counted, 6) if x.counted else 0.0)
+            assert v.objective_fit == pytest.approx(sum(x.contribution for x in v.objectives))
             maintenance = min(100.0, 100.0 * w.kloc / cfg.long_term_value.maintenance_kloc_cap)
             assert v.burden == round(cfg.long_term_value.debt_weight * (100 - w.health.score)
                                      + (1 - cfg.long_term_value.debt_weight) * maintenance, 4)
@@ -352,9 +403,12 @@ def test_effort_cost_duration_and_risk_reconstruct_exactly(rec: Recommendation, 
             assert o.migration_cost_jpy == round((o.effort_days or 0) * cfg.daily_rate_jpy)
             assert o.duration_months == round((o.effort_days or 0) / ((o.team_size or 1) * cfg.working_days_per_month), 4)
             m = o.multipliers
-            assert o.effort_lines[0].days == round(w.kloc * cfg.base_days_per_kloc[o.strategy] * m["complexity_multiplier"]
-                                                   * (1 + m["test_overhead"]) * m["uncertainty_buffer"], 4)
-            assert o.cutover_downtime_hours == cfg.cutover_downtime_hours[o.strategy]
+            core = o.effort_lines[0]
+            assert core.days == round(w.kloc * cfg.base_days_per_kloc[o.strategy] * m["complexity_multiplier"]
+                                      * (1 + m["test_overhead"]) * m["uncertainty_buffer"], 4)
+            parallel = [x for x in o.effort_lines if x.label == "Parallel run of old and new"]
+            if parallel:
+                assert parallel[0].days == round(core.days * cfg.cutover.incremental.parallel_run_effort_share, 4)
             exposure = sum(p.contribution for p in o.risk_components)
             assert all(p.contribution == round(p.weight * p.measure, 4) for p in o.risk_components)
             assert o.risk_score == round(min(100.0, cfg.risk.base[o.strategy] * (1 + cfg.risk.exposure_gain * exposure)), 4)
@@ -610,3 +664,157 @@ def test_cli_writes_recommendation_json(tmp_path: Path) -> None:
     assert out["work_packages"] and out["estate_findings"]["outdated"] == 8
     assert cli_main([str(tmp_path / "missing.json")]) == 2
     assert cli_main([str(analysis_path), "--profile", "bogus", "--out", str(tmp_path)]) == 2
+
+
+# --- Phase 3.6: breakeven, calibration, scope, change cost --------------------------------------------------------------------
+
+def _inputs(analysis: AnalysisResult, cfg: EngineConfig, scenario: ClientScenario, wid: str):  # type: ignore[no-untyped-def]
+    from engine.criticality import criticality
+    from engine.facts import build_contexts, build_module_facts, unit_facts
+    from engine.health import unit_health
+    from engine.strategies import UnitInputs
+    from engine.workpackages import build_work_packages
+
+    contexts = build_contexts(analysis)
+    mfacts, estate = build_module_facts(analysis, cfg, contexts)
+    wp = next(w for w in build_work_packages(analysis, cfg) if w.id == wid)
+    f = unit_facts(analysis, cfg, wp.id, wp.kind, wp.classes, contexts[wp.module])
+    crit = criticality(mfacts[wp.module], estate, {}, cfg).value
+    return UnitInputs.build(f, unit_health(f, cfg), crit, scenario.change_requests(wp.module) * f.loc / mfacts[wp.module].loc)
+
+
+def test_breakeven_report_structure(rec: Recommendation) -> None:
+    for w in rec.work_packages.values():
+        b = w.breakeven
+        assert b is not None and b.baseline_jpy_per_year == pytest.approx(w.maintenance_baseline_jpy_per_year, abs=0.01)
+        chosen = w.choices[rec.meta.selected_profile].chosen
+        assert b.chosen == chosen
+        selectable = {s.strategy for s in w.choices[rec.meta.selected_profile].ranking}
+        assert {o.strategy for o in b.overtaking} == selectable - {chosen}
+        for o in b.overtaking:
+            if o.breakeven_jpy_per_year is not None:
+                assert o.multiple_of_baseline == pytest.approx(o.breakeven_jpy_per_year / b.baseline_jpy_per_year, rel=1e-3)
+                assert (o.breakeven_jpy_per_year > b.baseline_jpy_per_year) == (o.direction == "higher")
+
+
+def test_the_breakeven_spend_really_changes_the_recommendation(
+        analysis: AnalysisResult, cfg: EngineConfig, scenario: ClientScenario, rec: Recommendation) -> None:
+    import dataclasses
+
+    from engine.scoring import pick
+    from engine.strategies import build_options
+
+    weights = scenario.priorities
+    checked = 0
+    for wid, w in rec.work_packages.items():
+        assert w.breakeven is not None
+        inputs = _inputs(analysis, cfg, scenario, wid)
+        chosen = w.breakeven.chosen
+        for o in w.breakeven.overtaking:
+            if o.breakeven_jpy_per_year is None:
+                continue
+            ladder = [o.breakeven_jpy_per_year * (1 + d) for d in (-1e-2, -1e-3, 1e-3, 1e-2)]
+            winners = {x: pick(build_options(dataclasses.replace(inputs, maintenance_override=x), cfg, scenario), weights, cfg)
+                       for x in ladder}
+            side = 1 if o.direction == "higher" else -1  # the overtaking side is further from the baseline
+            beyond = [winners[x] for x in ladder if (x > o.breakeven_jpy_per_year) == (side == 1)]
+            before = [winners[x] for x in ladder if (x > o.breakeven_jpy_per_year) != (side == 1)]
+            assert chosen in before and o.strategy in beyond, (wid, o.strategy, winners)
+            checked += 1
+    assert checked > 0
+
+
+def test_retain_breakeven_points_are_where_retain_loses(
+        analysis: AnalysisResult, cfg: EngineConfig, scenario: ClientScenario, rec: Recommendation) -> None:
+    import dataclasses
+
+    from engine.scoring import _scores
+    from engine.strategies import build_options
+
+    w = rec.work_packages["order/god-class-cluster-1"]
+    assert w.breakeven is not None and w.breakeven.retain_loses_to_every_alternative_jpy_per_year is not None
+    x = w.breakeven.retain_loses_to_every_alternative_jpy_per_year
+    inputs = _inputs(analysis, cfg, scenario, "order/god-class-cluster-1")
+
+    def retain_vs_min_alt(spend: float) -> float:
+        sc = {s: score for s, score, _ in _scores(build_options(dataclasses.replace(inputs, maintenance_override=spend), cfg, scenario),
+                                                  scenario.priorities, cfg)}
+        return sc["retain"] - min(v for s, v in sc.items() if s != "retain")
+
+    assert retain_vs_min_alt(x * 1.01) < 0 <= retain_vs_min_alt(x * 0.99)
+
+
+def test_default_keeps_the_model_baseline_and_flags_nothing_applied(rec: Recommendation, scenario: ClientScenario) -> None:
+    assert all(v is None for v in scenario.client_reported_maintenance_jpy.values())
+    for m in rec.modules.values():
+        cal = m.maintenance_calibration
+        assert (cal.client_reported_jpy, cal.applied, cal.gap_jpy, cal.gap_pct, cal.flagged) == (None, False, None, None, False)
+        wps = [rec.work_packages[i] for i in m.work_package_ids]
+        assert cal.model_estimate_jpy == pytest.approx(sum(w.maintenance_baseline_jpy_per_year for w in wps), abs=len(wps))
+
+
+def test_client_reported_maintenance_calibrates_the_baseline_and_shows_the_gap(
+        analysis: AnalysisResult, cfg: EngineConfig, scenario: ClientScenario, rec: Recommendation) -> None:
+    model = rec.modules["billing"].maintenance_calibration.model_estimate_jpy
+    sc = scenario.model_copy(deep=True)
+    sc.client_reported_maintenance_jpy = {"billing": model * 2}
+    out = run(analysis, cfg, sc)
+    cal = out.modules["billing"].maintenance_calibration
+    assert (cal.applied, cal.client_reported_jpy, cal.model_estimate_jpy) == (True, model * 2, model)
+    assert cal.gap_jpy == model - model * 2 and cal.gap_pct == pytest.approx(-50.0, abs=0.01) and cal.flagged
+    wps = [out.work_packages[i] for i in out.modules["billing"].work_package_ids]
+    assert sum(w.maintenance_baseline_jpy_per_year for w in wps) == pytest.approx(model * 2, abs=1)  # calibrated to the client
+    ratio = [w.maintenance_baseline_jpy_per_year / rec.work_packages[w.id].maintenance_baseline_jpy_per_year for w in wps]
+    assert ratio == pytest.approx([2.0] * len(wps))  # packages keep their relative weights
+    assert out.work_packages["order/cycle-1"].maintenance_baseline_jpy_per_year == rec.work_packages["order/cycle-1"].maintenance_baseline_jpy_per_year
+    close = scenario.model_copy(deep=True)
+    close.client_reported_maintenance_jpy = {"billing": round(model * 1.1)}
+    assert not run(analysis, cfg, close).modules["billing"].maintenance_calibration.flagged  # within the 25% threshold
+
+
+def test_scenario_kpi_is_labelled_whole_erp_and_restated_for_the_analysed_scope(
+        rec: Recommendation, scenario: ClientScenario, cfg: EngineConfig) -> None:
+    by = {k.objective: k for k in rec.kpi_reconciliation}
+    m = by["maintenance_cost"]
+    assert m.scope == "whole_erp" and m.kpi_current == 180.0 and m.analysed_scope_share == scenario.analysed_scope_share == 0.29
+    assert m.kpi_current_in_analysed_scope == pytest.approx(180.0 * 0.29)
+    model_total = sum(w.maintenance_baseline_jpy_per_year for w in rec.work_packages.values()) / 1e6
+    assert m.model_baseline == pytest.approx(model_total, rel=1e-3) and m.gap == pytest.approx(model_total - 180.0 * 0.29, abs=1e-3)
+    assert m.flagged == (abs(m.gap_pct or 0) > cfg.calibration.gap_flag_pct)
+    assert by["change_lead_time"].scope == "organisation" and by["change_lead_time"].model_baseline is None  # not modelled
+    assert by["run_cost"].kpi_current_in_analysed_scope == pytest.approx(36.0 * 0.29)
+
+
+def test_change_cost_saving_is_its_own_benefit_line(rec: Recommendation, cfg: EngineConfig) -> None:
+    w = rec.work_packages["order/god-class-cluster-1"]
+    retain, refactor, rehost = opt(w, "retain"), opt(w, "refactor"), opt(w, "rehost")
+    assert retain.tco is not None and refactor.tco is not None and rehost.tco is not None
+    assert retain.tco.change_savings_vs_retain_jpy == 0 and retain.tco.change_total_jpy > 0
+    assert refactor.tco.change_savings_vs_retain_jpy > rehost.tco.change_savings_vs_retain_jpy > 0
+    assert refactor.tco.change_savings_vs_retain_jpy == retain.tco.change_total_jpy - refactor.tco.change_total_jpy
+    # the maintenance saving is a different line: they add up, they are not the same number
+    assert refactor.tco.savings_vs_retain_jpy == (
+        (retain.tco.maintenance_total_jpy - refactor.tco.maintenance_total_jpy)
+        + (retain.tco.run_total_jpy - refactor.tco.run_total_jpy)
+        + refactor.tco.change_savings_vs_retain_jpy - refactor.tco.migration_total_jpy)
+
+
+def test_value_leaves_out_the_monetised_objective_instead_of_double_counting_it(rec: Recommendation, cfg: EngineConfig) -> None:
+    w = rec.work_packages["order/god-class-cluster-1"]
+    v = opt(w, "refactor").value
+    assert v is not None
+    lead = next(x for x in v.objectives if x.objective == cfg.change_cost.monetised_objective)
+    assert lead.counted is False and lead.contribution == 0.0 and lead.effect > 0  # it moves, but TCO pays for it
+    assert sum(x.contribution for x in v.objectives) == pytest.approx(v.objective_fit)
+    assert v.objective_fit <= 1.0
+
+
+def test_more_change_requests_raise_retain_cost_and_the_saving(
+        analysis: AnalysisResult, cfg: EngineConfig, scenario: ClientScenario, rec: Recommendation) -> None:
+    busy = scenario.model_copy(deep=True)
+    busy.change_requests_per_year = {**scenario.change_requests_per_year, "order": scenario.change_requests("order") * 2}
+    out = run(analysis, cfg, busy)
+    a, b = rec.work_packages["order/god-class-cluster-1"], out.work_packages["order/god-class-cluster-1"]
+    assert opt(b, "retain").tco.change_total_jpy == pytest.approx(2 * opt(a, "retain").tco.change_total_jpy, rel=1e-3)  # type: ignore[union-attr]
+    assert opt(b, "refactor").tco.change_savings_vs_retain_jpy > opt(a, "refactor").tco.change_savings_vs_retain_jpy  # type: ignore[union-attr]
+    assert out.modules["order"].change_requests_per_year == 240.0

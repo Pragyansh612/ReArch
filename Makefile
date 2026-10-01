@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 REPO ?=
 
-.PHONY: setup dev test lint analyze crosscheck recommend
+.PHONY: setup dev test lint analyze crosscheck recommend roadmap
 
 setup:
 	python3 -m venv .venv
@@ -40,3 +40,8 @@ crosscheck:
 recommend:
 	@test -n "$(NAME)" || (echo "usage: make recommend NAME=<analysis name, e.g. ofbiz> [PROFILE=...]"; exit 1)
 	$(PY) -m engine out/$(NAME).json $(if $(PROFILE),--profile "$(PROFILE)") $(if $(SCENARIO),--scenario $(SCENARIO))
+
+# make roadmap NAME=<analysis> [PROFILE=<preset|client_scenario|cost=..,...>] [SCENARIO=file]
+roadmap:
+	@test -n "$(NAME)" || (echo "usage: make roadmap NAME=<analysis name, e.g. ofbiz> [PROFILE=...]"; exit 1)
+	$(PY) -m engine.roadmap out/$(NAME).json $(if $(PROFILE),--profile "$(PROFILE)") $(if $(SCENARIO),--scenario $(SCENARIO))

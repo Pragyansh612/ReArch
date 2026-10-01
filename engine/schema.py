@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from engine.config import Criterion, Priorities, Strategy
 
-SCHEMA_VERSION = "2.0"
+SCHEMA_VERSION = "3.0"
 
 
 # --- technical health --------------------------------------------------------------------------------
@@ -93,20 +93,27 @@ class CashFlowYear(BaseModel):
     migration_jpy: int
     run_jpy: int
     maintenance_jpy: int
-    total_jpy: int  # migration + run + maintenance
+    change_jpy: int  # cost of the year's change requests (health dependent)
+    total_jpy: int  # migration + run + maintenance + change
 
 
 class Tco(BaseModel):
-    """tco = migration + sum over years (run + maintenance); all whole yen, so it reconstructs exactly."""
+    """tco = migration + sum over years (run + maintenance + change); all whole yen, so it reconstructs exactly."""
 
     horizon_years: int
     discount_rate: float
     baseline_maintenance_jpy_per_year: float  # the do-nothing yearly maintenance this unit costs today
     baseline_run_jpy_per_year: float
+    baseline_change_jpy_per_year: float
+    steady_state_maintenance_jpy: int  # yearly figures once the migration is complete
+    steady_state_run_jpy: int
+    steady_state_change_jpy: int
     yearly: list[CashFlowYear]
     migration_total_jpy: int
     run_total_jpy: int
     maintenance_total_jpy: int
+    change_total_jpy: int
+    change_savings_vs_retain_jpy: int  # the change-cost benefit line: retain's change cost minus this option's
     tco_jpy: int
     npv_cost_jpy: int  # present value of all cash outflows, year-end discounting
     savings_vs_retain_jpy: int  # retain tco - tco (positive = cheaper than doing nothing over the horizon)
@@ -118,7 +125,8 @@ class ObjectiveContribution(BaseModel):
     objective: str
     weight: float  # the client's weight for this objective
     effect: float  # share of the gap this strategy can close (config)
-    contribution: float  # weight x effect
+    counted: bool = True  # False for the objective monetised in TCO (change cost): left out of the value to avoid double counting
+    contribution: float  # weight x effect / (sum of counted weights); 0 when not counted
 
 
 class ValueBreakdown(BaseModel):
@@ -146,7 +154,10 @@ class StrategyOption(BaseModel):
     migration_cost_jpy: int | None = None  # = round(effort_days x daily_rate_jpy); 0 for retain
     duration_months: float | None = None  # = round(effort_days / (team_size x working_days_per_month), 4)
     team_size: float | None = None
-    cutover_downtime_hours: float | None = None
+    cutover_approach: str | None = None  # none | big_bang | incremental
+    cutover_events: int | None = None  # slices (incremental) or 1 (big bang)
+    cutover_hours_per_event: float | None = None  # the client's downtime limit applies to each event
+    cutover_total_hours: float | None = None
     risk_score: float | None = None
     base_risk: float | None = None
     risk_components: list[Component] = []
@@ -192,6 +203,24 @@ class Flip(BaseModel):
     note: str
 
 
+class Overtake(BaseModel):
+    strategy: Strategy
+    breakeven_jpy_per_year: float | None  # yearly maintenance spend at which this strategy overtakes the chosen one
+    multiple_of_baseline: float | None
+    direction: Literal["higher", "lower"] | None  # spend must rise or fall from the baseline
+
+
+class Breakeven(BaseModel):
+    """How wrong the maintenance baseline would have to be to change the recommendation (selected profile)."""
+
+    baseline_jpy_per_year: float
+    chosen: Strategy
+    overtaking: list[Overtake]  # every other selectable strategy
+    retain_stops_being_best_jpy_per_year: float | None  # only meaningful when retain is not already losing
+    retain_loses_to_every_alternative_jpy_per_year: float | None
+    note: str
+
+
 class WorkPackageReport(BaseModel):
     id: str
     module: str
@@ -207,6 +236,9 @@ class WorkPackageReport(BaseModel):
     options: list[StrategyOption]  # always includes `retain`
     choices: dict[str, StrategyChoice]  # by profile name
     sensitivity: list[Flip]  # for the selected profile, smallest change first
+    breakeven: Breakeven | None  # for the selected profile
+    maintenance_baseline_jpy_per_year: float
+    change_requests_per_year: float
 
 
 class ModuleRollup(BaseModel):
@@ -222,6 +254,17 @@ class ModuleRollup(BaseModel):
     duration_months: float
 
 
+class MaintenanceCalibration(BaseModel):
+    """Model estimate of a module's yearly maintenance next to the client's own figure, when the client gave one."""
+
+    model_estimate_jpy: int
+    client_reported_jpy: int | None
+    applied: bool  # True when the client figure replaced the model estimate as the baseline
+    gap_jpy: int | None  # model - client
+    gap_pct: float | None  # gap / client x 100
+    flagged: bool
+
+
 class ModuleReport(BaseModel):
     module: str
     loc: int
@@ -230,6 +273,8 @@ class ModuleReport(BaseModel):
     criticality: Criticality
     confidence: Literal["high", "medium", "low"]
     java_share: float | None
+    maintenance_calibration: MaintenanceCalibration
+    change_requests_per_year: float
     work_package_ids: list[str]
     rollups: dict[str, ModuleRollup]  # by profile name
 
@@ -249,6 +294,21 @@ class ProfileTotals(BaseModel):
     budget_ceiling_jpy: int
     within_budget: bool  # total migration cost <= the client's budget ceiling
     close_calls: list[str]  # work package ids
+
+
+class KpiReconciliation(BaseModel):
+    """The scenario's whole-ERP money KPIs next to the model, restated for the same (analysed) scope."""
+
+    objective: str
+    unit: str
+    scope: str
+    kpi_current: float  # as stated by the client (whole ERP)
+    analysed_scope_share: float
+    kpi_current_in_analysed_scope: float  # kpi_current x share
+    model_baseline: float | None  # the model's baseline for the analysed scope, in the same unit (None if not modelled)
+    gap: float | None  # model - scope-adjusted KPI
+    gap_pct: float | None
+    flagged: bool
 
 
 class OutdatedDependencies(BaseModel):
@@ -280,3 +340,4 @@ class Recommendation(BaseModel):
     hotspots: list[Hotspot]
     estate: dict[str, ProfileTotals]  # by profile name
     estate_findings: OutdatedDependencies
+    kpi_reconciliation: list[KpiReconciliation]

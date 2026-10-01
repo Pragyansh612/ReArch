@@ -153,7 +153,7 @@ The fixture's expected values are produced by `fixtures/generate_expected.py`, w
 
 ---
 
-## Phase 3 / 3.5 — Scoring and strategies (`engine/`)
+## Phase 3 / 3.5 / 3.6 — Scoring and strategies (`engine/`)
 
 Input: the analyzer JSON and the client scenario. Output: `out/<name>.recommendation.json` (contract `engine/schema.py`,
 JSON Schema `docs/recommendation-schema.json`). Every number is stored with the breakdown that reconstructs it, and the
@@ -186,8 +186,11 @@ values and a weight (maintenance cost, change lead time, expert dependency, run 
 horizon, ¥250M budget ceiling, maximum cutover downtime of 4 h for order and 2 h for accounting); the client's **priorities**
 (cost 0.25, risk 0.35, speed 0.10, long-term value 0.30), used as the default profile `client_scenario`; and the
 **criticality overrides** (accounting = 3, shipment = 2), each "from client interview". KPI current/target values are
-descriptive: the model uses the objective weights, not the KPI numbers. Note the scenario's ¥180M/yr maintenance KPI is for
-the whole ERP; the analysed four components are only part of it.
+descriptive: the model uses the objective weights, not the KPI numbers. **Scope (Phase 3.6):** the ¥180M a year maintenance KPI
+and ¥36M run-cost KPI are labelled `scope: whole_erp`. `analysed_scope_share` (0.29, derived as 71,940 analysed Java code lines ÷
+248,132 in the whole OFBiz codebase, by `cloc`) restates them for the analysed scope (¥52.2M and ¥10.4M), and the output's
+`kpi_reconciliation` puts them next to the model's own baseline for that scope with the gap flagged. The scenario also holds
+`change_requests_per_year` per module (illustrative) and an optional `client_reported_maintenance_jpy` per module (default null).
 
 ### Technical health (0–100, higher is healthier), per module and per work package
 `health = 100 − Σ over 7 components of (100 × weight × normalized)`, each normalized 0 (good) … 1 (bad). Weights (config, sum
@@ -243,36 +246,64 @@ Strategies: **retain** (do nothing, always present and selectable), rehost, repl
   low confidence.
 - **Migration cost and duration:** `migration_cost = round(effort_days × daily_rate)` (whole yen); `duration_months =
   effort_days ÷ (team_size[strategy] × 20)`.
-- **Feasibility against the scenario:** infeasible if the migration cost exceeds the budget ceiling, or if the strategy's cutover
-  downtime exceeds the client's maximum for that module. Cutover hours per strategy are illustrative (rehost 6, replatform 10,
-  refactor 1, rearchitect 2, retire 0.5, retain 0): big-bang strategies move the whole application in one window; incremental
-  (strangler) ones cut over route by route. Infeasible options keep all their numbers and a written reason, and are excluded
-  from the ranking. A portfolio whose total migration cost exceeds the ceiling is flagged (`within_budget`), not altered.
+- **Cutover approach and feasibility (Phase 3.6):** downtime is modelled from HOW a strategy goes live, not from the strategy
+  alone. *Big bang* (rehost, replatform, retire): the whole package moves in one window, so hours = a base per strategy (2, 4, 1)
+  + 0.25 h per KLOC: one event, and a bigger package needs a longer window. *Incremental / strangler* (refactor, rearchitect):
+  the package is cut over in slices, `ceil(KLOC ÷ 3)` of them, each a 0.5 h event; old and new run side by side while slices
+  move, which adds a "Parallel run of old and new" effort line of 15% of the core work. The client's downtime limit applies
+  PER CUTOVER EVENT, so a large package can still be done incrementally under a 1 h limit but cannot be done big-bang. The
+  output reports the approach, the number of events, the hours per event and the total. An option is also infeasible if its
+  migration cost exceeds the budget ceiling. Infeasible options keep all their numbers and a written reason and are excluded
+  from the ranking. A portfolio over the ceiling is flagged (`within_budget`) by Phase 3 and repaired by Phase 4. All
+  parameters are illustrative; the earlier flat per-strategy hours (6/10/1/2/0.5) are gone because they made the retain/rehost
+  split an artefact of one assumption.
 - **Delivery risk (0–100):** `risk = min(100, base_risk[strategy] × (1 + exposure))`, exposure = weighted mean of poor health 0.30,
   criticality 0.25, test gap 0.20, cycles 0.10, low confidence 0.15. Retain: `0.5 × 100 × exposure` (status-quo exposure).
 - **Long-term value (0–100):** `value = min(100, debt_reduction × burden × criticality_weight × objective_fit)`.
   `burden = 0.6 × (100 − health) + 0.4 × min(100, 100 × KLOC ÷ 30)`; `debt_reduction`: rehost 0.05, replatform 0.25, refactor 0.55,
   rearchitect 0.85, retire 1.0, retain 0; `criticality_weight`: 0.6 / 1.0 / 1.4 for criticality 1 / 2 / 3.
-  `objective_fit = Σ objective weight × effect[strategy][objective]`, where `effect` (config) is the share of an objective's gap a
+  `objective_fit = Σ over the counted objectives of (weight × effect[strategy][objective]) ÷ (sum of the counted weights)`,
+  where the objective monetised in TCO (`change_lead_time`) is NOT counted (Phase 3.6, see change cost below), and `effect` (config) is the share of an objective's gap a
   strategy can close in principle: for example rehost moves run cost (0.6) and barely maintenance (0.05) and not lead time
   or expert dependency (0); refactor moves maintenance, lead time and expert dependency (≈0.5–0.6) but little run cost (0.1);
   rearchitect moves most things (0.5–0.9). Debt reduction measures how much debt a strategy removes; objective fit measures how
   much of what *this client* cares about it can move. Multiplying them is deliberately conservative: a strategy must do both.
 
 ### Total cost of ownership and the do-nothing baseline
-For every option over the client's planning horizon (5 years): `tco = migration + Σ over years (run + maintenance)`, whole yen.
+For every option over the client's planning horizon (5 years): `tco = migration + Σ over years (run + maintenance + change)`, whole yen.
 - **Baseline maintenance per year** = `KLOC × 6 days × (1 + 1.5 × (1 − health ÷ 100)) × daily_rate`: more code and worse health
-  cost more to maintain. **Baseline run cost per year** = `KLOC × ¥150,000`.
+  cost more to maintain. **Baseline run cost per year** = `KLOC × ¥150,000`. The maintenance baseline is left unchanged by Phase
+  3.6 (see Breakeven below); it can be replaced per module by the client's own figure.
+- **Change cost (Phase 3.6):** the cost of a change request depends on how healthy the code is: `cost per change = base_days_per_change (1.0)
+  × (1 + 2.0 × (1 − health ÷ 100)) × daily_rate`. Yearly change cost = the package's change requests per year (its module's, by
+  LOC share) × that. After migration the multiplier uses the RESIDUAL debt: `1 + 2.0 × (1 − debt_reduction[strategy]) ×
+  (1 − health ÷ 100)`. The saving is its own benefit line (`change_savings_vs_retain`), separate from maintenance and run cost.
 - **After migration**, maintenance = baseline × `(1 − debt_reduction[strategy])` (the same factor that drives value: residual
-  debt stays and keeps costing) and run cost = baseline × `residual_run_cost[strategy]` (rehost 0.85, replatform 0.70,
-  refactor 0.95, rearchitect 0.60, retire 0). Savings start when the migration ends; migration spend is spread evenly over its
-  months. Year-by-year cash flows are in the output (migration, run, maintenance, total).
+  debt stays and keeps costing), run cost = baseline × `residual_run_cost[strategy]` (rehost 0.85, replatform 0.70,
+  refactor 0.95, rearchitect 0.60, retire 0) and change cost as above. Savings start when the migration ends; migration spend is
+  spread evenly over its months. Year-by-year cash flows are in the output (migration, run, maintenance, change, total).
 - **Reported per option:** TCO, savings against retain, **payback year** (first year the cumulative cost is no higher than
   retain's; none if never within the horizon), and **NPV** at 4% (`npv_cost` = present value of all outflows, year-end
-  discounting; `npv_vs_retain` = retain's minus the option's, positive = better than doing nothing).
-- **Limits:** the maintenance and run baselines are the weakest numbers in the model and the economics depend on them (see
-  progress.md): the model's baseline for the four analysed components is ¥67M a year, against the scenario's whole-ERP KPI of
-  ¥180M. A maintenance baseline 2.5× higher makes refactor attractive; the configured value is left as is.
+  discounting; `npv_vs_retain` = retain's minus the option's, positive = better than doing nothing), plus the steady-state yearly
+  figures after migration (used by the roadmap).
+- **No double counting.** The change-cost saving is cash in TCO. The value score used to count the same effect through the
+  "change lead time" objective, so that objective is now left out of `objective_fit` and the remaining objective weights are
+  renormalised to sum to 1 (otherwise value would silently shrink). The value score stays; it keeps measuring debt removed and
+  the non-cash objectives (maintenance burden, expert dependency, run cost).
+
+### Breakeven instead of tuning (Phase 3.6)
+The maintenance baseline is the weakest number in the model and the economics hinge on it, so it is not tuned. Instead, for
+each package under the selected profile, the output reports `breakeven_jpy_per_year`: the yearly maintenance spend at which each
+non-chosen selectable strategy would overtake the chosen one (searched between baseline ÷ 100 and × 100 in log space, refined by
+bisection, with the direction), plus the spend at which retain stops being best and the spend at which retain loses to every
+alternative. Only maintenance is varied (health, value and change cost are not), so each figure answers "how wrong would the
+baseline have to be?". Tests re-run the model just before and just beyond each breakeven to prove it flips.
+- **Client calibration:** if the client gives `client_reported_maintenance_jpy` for a module, it replaces the model's estimate
+  as that module's baseline (spread over its packages in proportion to the model's estimates). Both figures, the gap in yen and
+  percent, and a flag (gap above 25%) appear side by side in `maintenance_calibration`. With the default (null) nothing changes.
+- **Scope:** `kpi_reconciliation` shows the whole-ERP KPI, the share, the scope-adjusted KPI and the model's baseline for the same
+  scope (OFBiz: ¥52.2M adjusted vs ¥67.0M model, +28%, flagged).
+- **Limit:** breakeven moves one number; it says nothing about the other assumptions.
 
 ### Priorities and the choice
 Weights over cost, risk, speed and long-term value, summing to 1 (rejected otherwise). Profiles: the five presets, the client's
@@ -280,8 +311,9 @@ own `client_scenario` (the default), or custom `cost=…,risk=…,speed=…,long
 absolute scale: cost `max(0, 1 − tco ÷ (3 × retain_tco))`, speed `max(0, 1 − months ÷ 24)`, risk `1 − risk ÷ 100`, value
 `value ÷ 100`. `score = 100 × Σ weight × goodness`. The best selectable (eligible and feasible) strategy wins; the runner-up and
 margin are reported; a **close call** is a margin under 5 points; ties go to the earlier strategy in the config (retain first).
-- **Limit:** cost, risk and speed all favour the least ambitious option, so unless the value weight is large the result is
-  retain or rehost; see progress.md for what this does on OFBiz.
+- **Known limitation (cost/speed collinearity):** cost and speed are both driven by effort, and risk grows with ambition too, so
+  three of the four criteria favour the least ambitious option and only the long-term-value weight pushes the other way. The
+  presets are left unchanged on purpose (Phase 3.6 decision); progress.md records what this does on OFBiz.
 
 ### Sensitivity
 For the selected profile and each package, the engine searches one assumption at a time (daily rate, each strategy's base days,
@@ -294,3 +326,75 @@ weights, constraints) are not searched; progress.md reports what-ifs for the mos
 Per profile: strategy mix across packages, effort, total migration cost, total TCO against the total retain TCO, savings and NPV
 against retain, total duration (sum over packages: one shared team in sequence; Phase 4 arranges waves), budget status and close
 calls. Outdated dependencies appear as an estate-level finding with their coverage (checked of declared).
+
+---
+
+## Phase 4 — Portfolio and roadmap (`engine/roadmap/`)
+
+Input: the recommendation (all profiles, all options), the analysis (class edges) and the scenario. Output:
+`out/<name>.roadmap.json` (contract `engine/roadmap/schema.py`, JSON Schema `docs/roadmap-schema.json`). Deterministic: no
+randomness, every iteration order is sorted, ties are broken by fixed rules (tested by running the pipeline twice).
+
+### Budget-constrained portfolio
+- **What it decides:** one selectable (eligible and feasible) option per package, maximising the total priority-weighted score
+  (the profile's score of each chosen option, summed), subject to total migration cost ≤ the budget ceiling.
+- **Method:** exact dynamic programming over the Pareto frontier of (cost, score) states: after each package, a state is dropped only
+  if another is at least as cheap and at least as good. Scores are integers (four decimals × 10,000), so there is no floating-point
+  noise. Ties go to the higher score, then the lower cost, then the lexicographically smallest strategy order. The tests compare it
+  with brute force over every combination on the fixture, for eight budgets.
+- **Output:** the unconstrained portfolio (each package's own best), the constrained one, and exactly which packages were
+  downgraded because of the budget (from, to, score lost, migration cost saved). `budget_binding` says whether the unconstrained
+  portfolio exceeded the budget; if not, the two portfolios are identical.
+- **Limit (package-size-blind):** every package's score counts equally, whatever its size. The optimiser therefore prefers
+  many small upgrades to one large one; on OFBiz that drops the large shopping-cart cluster first (see progress.md). A weighting by
+  size or by value at stake would change this; it is a modelling decision for the client, not applied here.
+
+### Sequencing into waves
+- **Jobs:** every package whose chosen strategy is not retain is a job (effort, migration cost, duration, people from its chosen option).
+  Capacity = teams × team size (config: 2 × 6 = 12 people); a job occupies the people its strategy needs (capped at the capacity;
+  a capped job takes proportionally longer) for its whole duration, in whole months.
+- **Dependencies (strangler order):** class edges are lifted to package edges. A package depends on the packages it references,
+  following paths through packages that are not changing (retained ones). It starts only after those finish: leaves first, so
+  dependents can switch to the new APIs. Packages that depend on each other, even indirectly, are *entangled* (strongly connected):
+  they start in the same month and are cut over together. If an entangled group needs more people than the capacity allows at once, its
+  members are staggered and every member's cutover is held until the whole group is built (reason `ENTANGLED_STAGGERED`).
+- **Wave 0, foundations,** estimated with transparent formulas (effort days × daily rate; duration = days ÷ (4 people × 20)):
+  CI/CD = 40 + 5 × packages that change code; observability = 30 + 0.5 × KLOC of the packages that need it; API facade = 30 + 10 ×
+  strangler packages; and a **safety-net test suite** for every refactored or rearchitected package whose test gap is ≥ 0.8:
+  `KLOC × 4 days × uncertainty buffer`, the same formula as the "build safety-net tests first" line. When that line was already inside
+  the package's cost (rearchitect without tests), it is moved to Wave 0, not added twice. Which strategies need which foundation is
+  config (CI/CD: replatform, refactor, rearchitect; observability: replatform, rearchitect; facade: refactor, rearchitect).
+  Foundations, and the safety net of a package, finish before the packages that need them start. An all-rehost programme needs none.
+- **Order:** quick wins first (risk ≤ 20, ≤ 3 months, no foundations needed: they build the client's confidence), then foundations,
+  then the rest by value per risk (`value ÷ max(risk, 1)`, highest first). A job starts at the earliest month when its
+  dependencies are done, capacity is free for its whole duration and the optional yearly budget cap would not be exceeded.
+- **Reason codes** on every placement (never empty): `DEPENDS_ON`, `ENTANGLED_WITH`, `ENTANGLED_STAGGERED`,
+  `CUTOVER_AFTER_ENTANGLED_GROUP`, `NEEDS_SAFETY_NET`, `NEEDS_CICD`, `NEEDS_OBSERVABILITY`, `NEEDS_FACADE`, `CAPACITY`, `BUDGET_CAP`,
+  `QUICK_WIN`, `VALUE_PER_RISK_ORDER`, and `FOUNDATION_FOR` on foundations. Anything that cannot be placed is listed as unscheduled
+  with a code, never dropped silently.
+- **Waves:** Wave 0 = foundations; wave 1 + dependency depth for package groups; the final wave, "What modernization unlocks", has no work.
+
+### What modernization unlocks (no LLM)
+A deterministic config mapping from modernized packages to data and AI opportunities. An opportunity lists requirements such as
+"order packages holding at least 60% of the module's code reach refactor or beyond"; when all hold it is `unlocked`, its
+prerequisites are those packages and it is available from the month after the last of them is cut over. Otherwise it is
+`not_unlocked` with the blocking packages, or `module_not_analysed`. Rehost does not expose APIs, so an all-rehost programme unlocks
+nothing. The four opportunities (demand forecasting, automated reconciliation, single customer view, delivery-time prediction) and
+their requirements are illustrative configuration.
+
+### Programme economics
+Monthly cash flows over the planning horizon, the roadmap against doing nothing. Each package pays today's baseline maintenance +
+run + change cost until its last cutover month, and the option's steady-state cost afterwards; migration and foundation spend are
+spread evenly over each job's months. Reported by quarter: programme spend, cumulative cost under the roadmap and under retain, the
+net difference (positive = ahead), and the yearly run rate of both. **Payback quarter** = the first quarter-end at which the
+cumulative cost is no higher than retain's after having been behind (quarter 1 if never behind; none if no money is spent or it
+never catches up). **NPV** = present value of the monthly (retain − roadmap − spend) flows at 4%. **Peak investment** = the largest
+cumulative shortfall against retain. **KPI trajectory:** where the model supports it (maintenance cost, run cost) the client's
+whole-ERP KPI minus the model's saving in the analysed scope; change lead time and expert dependency are marked not modelled.
+- **Limits:** the KPI trajectory mixes the client's whole-ERP figure with a model saving whose baseline differs from the scope-adjusted
+  KPI (flagged in `kpi_reconciliation`); the horizon cuts off savings beyond it; spend is spread evenly; one shared team pool.
+
+### Gantt-ready output
+Every item carries: wave, package, kind, strategy, start and end month (1-based, inclusive), people, a display lane and team label
+(lanes are rows, capacity is people), effort, cost, the monthly spend, the cutover events (month and hours each), dependencies and
+reason codes. Tests check that lanes never overlap, monthly spend sums to the cost, and capacity is never exceeded.

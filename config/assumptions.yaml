@@ -163,15 +163,48 @@ engine:
   retain:
     risk_scale: 0.5
 
-  # --- cutover downtime (hours), checked against the client's maximum in the scenario ----------------------
-  # Big-bang strategies move a whole application in one window (freeze, data sync, switch); incremental ones
-  # (strangler) cut over route by route in short windows. ILLUSTRATIVE: calibrate from comparable cutovers.
-  cutover_downtime_hours: {retain: 0, rehost: 6, replatform: 10, refactor: 1, rearchitect: 2, retire: 0.5}
+  # --- cutover approach: how a strategy goes live, and the downtime of each cutover EVENT ------------------------
+  # big_bang: the whole package moves in one window (freeze, data sync, switch); hours = base[strategy] + hours_per_kloc x KLOC,
+  #           so a bigger package needs a longer window. One event.
+  # incremental (strangler): the package is cut over in slices, each small and short; slices = ceil(KLOC / slice_kloc);
+  #           every slice is one event of hours_per_slice. Old and new run in parallel while slices move, which costs
+  #           parallel_run_effort_share x the core work as an extra effort line.
+  # The client's downtime limit applies PER EVENT. ILLUSTRATIVE: calibrate from comparable cutovers.
+  cutover:
+    approach: {retain: none, rehost: big_bang, replatform: big_bang, refactor: incremental, rearchitect: incremental, retire: big_bang}
+    big_bang:
+      base_hours: {rehost: 2.0, replatform: 4.0, retire: 1.0}
+      hours_per_kloc: 0.25
+    incremental:
+      slice_kloc: 3.0
+      hours_per_slice: 0.5
+      parallel_run_effort_share: 0.15
+
+  # --- change cost: what each change request costs, which depends on how healthy the code is -------------------
+  # cost per change = base_days_per_change x (1 + health_penalty x (1 - health/100)) x daily_rate
+  # after migration the multiplier uses the RESIDUAL debt: 1 + health_penalty x (1 - debt_reduction[strategy]) x (1 - health/100)
+  # change requests per year per module come from the client scenario; a package gets its module's share by LOC.
+  # The yearly saving is a separate benefit line in TCO. The objective named below is monetised there, so the value score
+  # leaves it out (and renormalises the remaining objective weights) instead of counting the same saving twice.
+  change_cost:
+    base_days_per_change: 1.0      # ILLUSTRATIVE: one engineer-day for a change in perfectly healthy code
+    health_penalty: 2.0            # ILLUSTRATIVE: the worst code makes a change up to 3x as expensive
+    monetised_objective: change_lead_time
+
+  # --- calibration to the client's own maintenance figure (scenario `client_reported_maintenance_jpy`) ----------------
+  calibration:
+    gap_flag_pct: 25               # flag a module when the model estimate and the client figure differ by more than this
+
+  # --- breakeven: the yearly maintenance spend at which the recommendation would change ----------------------------
+  breakeven:
+    range_factor: 100              # searched between baseline / 100 and baseline x 100
+    steps: 120
 
   # --- long-term value (0-100, higher = better) -----------------------------------------------------------------
   # value = min(100, debt_reduction[strategy] x burden x criticality_weight[criticality] x objective_fit[strategy])
   #   burden = debt_weight x (100 - health) + (1 - debt_weight) x maintenance_points
-  #   objective_fit[strategy] = sum over the client's objectives of (objective weight x objective_effect[strategy][objective])
+  #   objective_fit[strategy] = sum over the client's NON-monetised objectives of (objective weight x objective_effect),
+  #                             divided by the sum of those weights (the monetised objective is in TCO instead)
   long_term_value:
     debt_reduction: {rehost: 0.05, replatform: 0.25, refactor: 0.55, rearchitect: 0.85, retire: 1.0}
     debt_weight: 0.6
@@ -264,3 +297,56 @@ engine:
   sensitivity:
     range_factor: 10.0         # multiplicative parameters are tried between value/10 and value x 10
     steps: 200
+
+# ---------------------------------------------------------------------------
+# Phase 4: portfolio and roadmap (ILLUSTRATIVE, see the banner at the top of this file).
+# ---------------------------------------------------------------------------
+roadmap:
+  # Capacity: people working at once = teams x team_size_people. A package occupies the people its strategy needs
+  # (engine.team_size[strategy], capped at the capacity) for its whole duration.
+  teams: 2
+  team_size_people: 6
+  yearly_budget_cap_jpy: null      # optional cap on programme spend per programme year (months 1-12, 13-24, ...); null = none
+  search_horizon_months: 240       # how far the scheduler looks for a slot before declaring a job unscheduled
+  wave_name_template: "Wave {n}"
+
+  # Quick wins are scheduled first (they build the client's confidence): low risk AND short.
+  quick_win: {max_risk: 20.0, max_months: 3.0}
+
+  # Wave 0 foundations: estimated from transparent formulas, effort in days x the daily rate; duration = days / (people x 20).
+  foundations:
+    team_people: 4
+    cicd: {base_days: 40, days_per_package: 5}              # base + days_per_package x packages that change code
+    observability: {base_days: 30, days_per_kloc: 0.5}      # base + days_per_kloc x KLOC of the packages that need it
+    facade: {base_days: 30, days_per_package: 10}           # API facade that strangler (incremental) packages cut over behind
+    weak_test_gap: 0.8               # a refactored/rearchitected package with test gap >= this gets a safety-net suite first
+    required_by:                     # which strategies need which foundation before they start
+      cicd: [replatform, refactor, rearchitect]
+      observability: [replatform, rearchitect]
+      facade: [refactor, rearchitect]
+    strategy_rank: {retain: 0, rehost: 1, replatform: 2, refactor: 3, rearchitect: 4, retire: 5}
+
+  # Final wave, "What modernization unlocks": a deterministic mapping from modernized packages to data/AI opportunities.
+  # An opportunity is unlocked when, for every requirement, the packages of that module whose chosen strategy ranks at least
+  # `min_strategy` hold at least `min_loc_share` of the module's code. Its prerequisites are those packages.
+  unlocks:
+    - id: demand_forecasting
+      name: Demand forecasting
+      kind: ai
+      description: Order and catalogue APIs make order history and product data available to a forecasting model.
+      requires: [{module: order, min_strategy: refactor, min_loc_share: 0.6}, {module: product, min_strategy: replatform, min_loc_share: 0.5}]
+    - id: automated_reconciliation
+      name: Automated invoice and payment reconciliation
+      kind: ai
+      description: Invoice and payment data becomes accessible through APIs, so matching can be automated.
+      requires: [{module: accounting, min_strategy: refactor, min_loc_share: 0.6}]
+    - id: customer_360
+      name: Single customer view
+      kind: data
+      description: Party and order APIs let customer, contact and order history be joined in one place.
+      requires: [{module: party, min_strategy: replatform, min_loc_share: 0.6}, {module: order, min_strategy: refactor, min_loc_share: 0.6}]
+    - id: delivery_eta_prediction
+      name: Delivery time prediction
+      kind: ai
+      description: Shipment and order events exposed as APIs feed a delivery-time model for customer commitments.
+      requires: [{module: shipment, min_strategy: refactor, min_loc_share: 0.6}, {module: order, min_strategy: refactor, min_loc_share: 0.6}]

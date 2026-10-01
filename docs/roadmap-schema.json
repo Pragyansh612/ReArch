@@ -1,0 +1,902 @@
+{
+  "$defs": {
+    "CutoverEvent": {
+      "properties": {
+        "month": {
+          "title": "Month",
+          "type": "integer"
+        },
+        "hours": {
+          "title": "Hours",
+          "type": "number"
+        }
+      },
+      "required": [
+        "month",
+        "hours"
+      ],
+      "title": "CutoverEvent",
+      "type": "object"
+    },
+    "Downgrade": {
+      "properties": {
+        "package_id": {
+          "title": "Package Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unconstrained": {
+          "enum": [
+            "retain",
+            "rehost",
+            "replatform",
+            "refactor",
+            "rearchitect",
+            "retire"
+          ],
+          "title": "Unconstrained",
+          "type": "string"
+        },
+        "constrained": {
+          "enum": [
+            "retain",
+            "rehost",
+            "replatform",
+            "refactor",
+            "rearchitect",
+            "retire"
+          ],
+          "title": "Constrained",
+          "type": "string"
+        },
+        "score_lost": {
+          "title": "Score Lost",
+          "type": "number"
+        },
+        "migration_cost_saved_jpy": {
+          "title": "Migration Cost Saved Jpy",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "package_id",
+        "name",
+        "unconstrained",
+        "constrained",
+        "score_lost",
+        "migration_cost_saved_jpy",
+        "reason"
+      ],
+      "title": "Downgrade",
+      "type": "object"
+    },
+    "Economics": {
+      "properties": {
+        "horizon_months": {
+          "title": "Horizon Months",
+          "type": "integer"
+        },
+        "discount_rate": {
+          "title": "Discount Rate",
+          "type": "number"
+        },
+        "quarters": {
+          "items": {
+            "$ref": "#/$defs/QuarterPoint"
+          },
+          "title": "Quarters",
+          "type": "array"
+        },
+        "total_programme_cost_jpy": {
+          "title": "Total Programme Cost Jpy",
+          "type": "integer"
+        },
+        "payback_quarter": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Payback Quarter"
+        },
+        "npv_vs_retain_jpy": {
+          "title": "Npv Vs Retain Jpy",
+          "type": "integer"
+        },
+        "peak_investment_jpy": {
+          "title": "Peak Investment Jpy",
+          "type": "integer"
+        },
+        "peak_investment_quarter": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Peak Investment Quarter"
+        },
+        "kpis": {
+          "items": {
+            "$ref": "#/$defs/KpiTrajectory"
+          },
+          "title": "Kpis",
+          "type": "array"
+        }
+      },
+      "required": [
+        "horizon_months",
+        "discount_rate",
+        "quarters",
+        "total_programme_cost_jpy",
+        "payback_quarter",
+        "npv_vs_retain_jpy",
+        "peak_investment_jpy",
+        "peak_investment_quarter",
+        "kpis"
+      ],
+      "title": "Economics",
+      "type": "object"
+    },
+    "Item": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "wave": {
+          "title": "Wave",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "foundation",
+            "package"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "package_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Package Id"
+        },
+        "module": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Module"
+        },
+        "strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "retain",
+                "rehost",
+                "replatform",
+                "refactor",
+                "rearchitect",
+                "retire"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Strategy"
+        },
+        "start_month": {
+          "title": "Start Month",
+          "type": "integer"
+        },
+        "end_month": {
+          "title": "End Month",
+          "type": "integer"
+        },
+        "people": {
+          "title": "People",
+          "type": "integer"
+        },
+        "lane": {
+          "title": "Lane",
+          "type": "integer"
+        },
+        "team": {
+          "title": "Team",
+          "type": "string"
+        },
+        "effort_days": {
+          "title": "Effort Days",
+          "type": "number"
+        },
+        "cost_jpy": {
+          "title": "Cost Jpy",
+          "type": "integer"
+        },
+        "monthly_spend_jpy": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Monthly Spend Jpy",
+          "type": "array"
+        },
+        "cutover_events": {
+          "items": {
+            "$ref": "#/$defs/CutoverEvent"
+          },
+          "title": "Cutover Events",
+          "type": "array"
+        },
+        "depends_on": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Formula"
+        }
+      },
+      "required": [
+        "id",
+        "wave",
+        "kind",
+        "name",
+        "package_id",
+        "module",
+        "strategy",
+        "start_month",
+        "end_month",
+        "people",
+        "lane",
+        "team",
+        "effort_days",
+        "cost_jpy",
+        "monthly_spend_jpy",
+        "cutover_events",
+        "depends_on",
+        "reason_codes"
+      ],
+      "title": "Item",
+      "type": "object"
+    },
+    "KpiPoint": {
+      "properties": {
+        "quarter": {
+          "title": "Quarter",
+          "type": "integer"
+        },
+        "month_end": {
+          "title": "Month End",
+          "type": "integer"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "quarter",
+        "month_end",
+        "value"
+      ],
+      "title": "KpiPoint",
+      "type": "object"
+    },
+    "KpiTrajectory": {
+      "properties": {
+        "objective": {
+          "title": "Objective",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "modelled": {
+          "title": "Modelled",
+          "type": "boolean"
+        },
+        "current": {
+          "title": "Current",
+          "type": "number"
+        },
+        "target": {
+          "title": "Target",
+          "type": "number"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/KpiPoint"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "target_reached_quarter": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Reached Quarter"
+        }
+      },
+      "required": [
+        "objective",
+        "label",
+        "unit",
+        "modelled",
+        "current",
+        "target",
+        "note",
+        "points",
+        "target_reached_quarter"
+      ],
+      "title": "KpiTrajectory",
+      "type": "object"
+    },
+    "Opportunity": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "unlocked",
+            "not_unlocked",
+            "module_not_analysed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "requirements": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requirements",
+          "type": "array"
+        },
+        "prerequisite_packages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prerequisite Packages",
+          "type": "array"
+        },
+        "available_from_month": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available From Month"
+        },
+        "blocked_by": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocked By",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "description",
+        "status",
+        "requirements",
+        "prerequisite_packages",
+        "available_from_month",
+        "blocked_by"
+      ],
+      "title": "Opportunity",
+      "type": "object"
+    },
+    "Portfolio": {
+      "properties": {
+        "total_score": {
+          "title": "Total Score",
+          "type": "number"
+        },
+        "total_migration_cost_jpy": {
+          "title": "Total Migration Cost Jpy",
+          "type": "integer"
+        },
+        "choices": {
+          "items": {
+            "$ref": "#/$defs/PortfolioChoice"
+          },
+          "title": "Choices",
+          "type": "array"
+        },
+        "strategy_mix": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Strategy Mix",
+          "type": "object"
+        }
+      },
+      "required": [
+        "total_score",
+        "total_migration_cost_jpy",
+        "choices",
+        "strategy_mix"
+      ],
+      "title": "Portfolio",
+      "type": "object"
+    },
+    "PortfolioChoice": {
+      "properties": {
+        "package_id": {
+          "title": "Package Id",
+          "type": "string"
+        },
+        "strategy": {
+          "enum": [
+            "retain",
+            "rehost",
+            "replatform",
+            "refactor",
+            "rearchitect",
+            "retire"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "migration_cost_jpy": {
+          "title": "Migration Cost Jpy",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "package_id",
+        "strategy",
+        "score",
+        "migration_cost_jpy"
+      ],
+      "title": "PortfolioChoice",
+      "type": "object"
+    },
+    "PortfolioSelection": {
+      "properties": {
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        },
+        "weights": {
+          "$ref": "#/$defs/Priorities"
+        },
+        "budget_ceiling_jpy": {
+          "title": "Budget Ceiling Jpy",
+          "type": "integer"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "budget_binding": {
+          "title": "Budget Binding",
+          "type": "boolean"
+        },
+        "unconstrained": {
+          "$ref": "#/$defs/Portfolio"
+        },
+        "constrained": {
+          "$ref": "#/$defs/Portfolio"
+        },
+        "downgrades": {
+          "items": {
+            "$ref": "#/$defs/Downgrade"
+          },
+          "title": "Downgrades",
+          "type": "array"
+        }
+      },
+      "required": [
+        "profile",
+        "weights",
+        "budget_ceiling_jpy",
+        "method",
+        "budget_binding",
+        "unconstrained",
+        "constrained",
+        "downgrades"
+      ],
+      "title": "PortfolioSelection",
+      "type": "object"
+    },
+    "Priorities": {
+      "description": "Client weights over the four criteria; they sum to 1.",
+      "properties": {
+        "cost": {
+          "title": "Cost",
+          "type": "number"
+        },
+        "risk": {
+          "title": "Risk",
+          "type": "number"
+        },
+        "speed": {
+          "title": "Speed",
+          "type": "number"
+        },
+        "long_term_value": {
+          "title": "Long Term Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "cost",
+        "risk",
+        "speed",
+        "long_term_value"
+      ],
+      "title": "Priorities",
+      "type": "object"
+    },
+    "QuarterPoint": {
+      "properties": {
+        "quarter": {
+          "title": "Quarter",
+          "type": "integer"
+        },
+        "month_end": {
+          "title": "Month End",
+          "type": "integer"
+        },
+        "programme_spend_jpy": {
+          "title": "Programme Spend Jpy",
+          "type": "integer"
+        },
+        "roadmap_cumulative_cost_jpy": {
+          "title": "Roadmap Cumulative Cost Jpy",
+          "type": "integer"
+        },
+        "retain_cumulative_cost_jpy": {
+          "title": "Retain Cumulative Cost Jpy",
+          "type": "integer"
+        },
+        "net_cumulative_jpy": {
+          "title": "Net Cumulative Jpy",
+          "type": "integer"
+        },
+        "roadmap_annual_run_rate_jpy": {
+          "title": "Roadmap Annual Run Rate Jpy",
+          "type": "integer"
+        },
+        "retain_annual_run_rate_jpy": {
+          "title": "Retain Annual Run Rate Jpy",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "quarter",
+        "month_end",
+        "programme_spend_jpy",
+        "roadmap_cumulative_cost_jpy",
+        "retain_cumulative_cost_jpy",
+        "net_cumulative_jpy",
+        "roadmap_annual_run_rate_jpy",
+        "retain_annual_run_rate_jpy"
+      ],
+      "title": "QuarterPoint",
+      "type": "object"
+    },
+    "ReasonCode": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "ReasonCode",
+      "type": "object"
+    },
+    "RoadmapMeta": {
+      "properties": {
+        "schema_version": {
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "analysis_name": {
+          "title": "Analysis Name",
+          "type": "string"
+        },
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        },
+        "scenario_client": {
+          "title": "Scenario Client",
+          "type": "string"
+        },
+        "capacity_people": {
+          "title": "Capacity People",
+          "type": "integer"
+        },
+        "teams": {
+          "title": "Teams",
+          "type": "integer"
+        },
+        "yearly_budget_cap_jpy": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Yearly Budget Cap Jpy"
+        },
+        "finish_month": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Finish Month"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "analysis_name",
+        "profile",
+        "scenario_client",
+        "capacity_people",
+        "teams",
+        "yearly_budget_cap_jpy",
+        "finish_month",
+        "notes"
+      ],
+      "title": "RoadmapMeta",
+      "type": "object"
+    },
+    "Unscheduled": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "$ref": "#/$defs/ReasonCode"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "reason_codes"
+      ],
+      "title": "Unscheduled",
+      "type": "object"
+    },
+    "Wave": {
+      "properties": {
+        "number": {
+          "title": "Number",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "start_month": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start Month"
+        },
+        "end_month": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End Month"
+        },
+        "item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Item Ids",
+          "type": "array"
+        },
+        "cost_jpy": {
+          "title": "Cost Jpy",
+          "type": "integer"
+        },
+        "peak_people": {
+          "title": "Peak People",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "number",
+        "name",
+        "start_month",
+        "end_month",
+        "item_ids",
+        "cost_jpy",
+        "peak_people"
+      ],
+      "title": "Wave",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "meta": {
+      "$ref": "#/$defs/RoadmapMeta"
+    },
+    "portfolio": {
+      "$ref": "#/$defs/PortfolioSelection"
+    },
+    "waves": {
+      "items": {
+        "$ref": "#/$defs/Wave"
+      },
+      "title": "Waves",
+      "type": "array"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/Item"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "unscheduled": {
+      "items": {
+        "$ref": "#/$defs/Unscheduled"
+      },
+      "title": "Unscheduled",
+      "type": "array"
+    },
+    "retained_packages": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Retained Packages",
+      "type": "array"
+    },
+    "unlocks": {
+      "items": {
+        "$ref": "#/$defs/Opportunity"
+      },
+      "title": "Unlocks",
+      "type": "array"
+    },
+    "economics": {
+      "$ref": "#/$defs/Economics"
+    },
+    "assumptions": {
+      "additionalProperties": true,
+      "title": "Assumptions",
+      "type": "object"
+    }
+  },
+  "required": [
+    "meta",
+    "portfolio",
+    "waves",
+    "items",
+    "unscheduled",
+    "retained_packages",
+    "unlocks",
+    "economics",
+    "assumptions"
+  ],
+  "title": "Roadmap",
+  "type": "object"
+}

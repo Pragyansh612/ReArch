@@ -17,6 +17,7 @@ class Objective(BaseModel):
     current: float
     target: float
     weight: float
+    scope: str = "whole_erp"
     illustrative: bool = True
 
 
@@ -32,6 +33,9 @@ class ClientScenario(BaseModel):
     objectives: list[Objective]
     constraints: Constraints
     priorities: Priorities
+    analysed_scope_share: float = 1.0
+    change_requests_per_year: dict[str, float] = {}
+    client_reported_maintenance_jpy: dict[str, int | None] = {}
     criticality_overrides: dict[str, list[Override]] = {}
 
     @model_validator(mode="after")
@@ -39,12 +43,18 @@ class ClientScenario(BaseModel):
         total = sum(o.weight for o in self.objectives)
         if abs(total - 1.0) > 1e-9:
             raise ValueError(f"objective weights must sum to 1, got {total}")
+        if not 0.0 < self.analysed_scope_share <= 1.0:
+            raise ValueError("analysed_scope_share must be in (0, 1]")
         if self.constraints.planning_horizon_years < 1:
             raise ValueError("planning horizon must be at least one year")
         return self
 
     def overrides_for(self, analysis_name: str) -> dict[str, Override]:
         return {o.module: o for o in self.criticality_overrides.get(analysis_name, [])}
+
+    def change_requests(self, module: str) -> float:
+        table = self.change_requests_per_year
+        return float(table.get(module, table.get("default", 0.0)))
 
     def objective_weights(self) -> dict[str, float]:
         return {o.id: o.weight for o in self.objectives}

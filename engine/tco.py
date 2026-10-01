@@ -23,23 +23,24 @@ def post_migration_fraction(year: int, duration_months: float) -> float:
     return min(1.0, max(0.0, (12.0 * year - duration_months) / 12.0))
 
 
-Row = tuple[int, int, int, int]  # (year, migration, run, maintenance) in whole yen
+Row = tuple[int, int, int, int, int]  # (year, migration, run, maintenance, change) in whole yen
 
 
-def tco_rows(*, maintenance_year: float, run_year: float, migration_cost: int, duration_months: float,
-             reduction: float, run_factor: float, horizon: int) -> list[Row]:
-    """Yearly cash flows. maintenance after migration = baseline x (1 - reduction); run = baseline x run_factor."""
+def tco_rows(*, maintenance_year: float, run_year: float, change_year: float, migration_cost: int, duration_months: float,
+             reduction: float, run_factor: float, change_factor: float, horizon: int) -> list[Row]:
+    """Yearly cash flows. After migration: maintenance = baseline x (1 - reduction), run = baseline x run_factor,
+    change cost = baseline x change_factor (residual debt keeps changes expensive)."""
     mig = migration_by_year(migration_cost, duration_months, horizon)
     rows: list[Row] = []
     for t in range(1, horizon + 1):
         f = post_migration_fraction(t, duration_months)
         rows.append((t, mig[t - 1], round(run_year * (1.0 - (1.0 - run_factor) * f)),
-                     round(maintenance_year * (1.0 - reduction * f))))
+                     round(maintenance_year * (1.0 - reduction * f)), round(change_year * (1.0 - (1.0 - change_factor) * f))))
     return rows
 
 
 def total(row: Row) -> int:
-    return row[1] + row[2] + row[3]
+    return row[1] + row[2] + row[3] + row[4]
 
 
 def tco_of(rows: list[Row]) -> int:
@@ -60,16 +61,19 @@ def payback_year(rows: list[Row], retain_rows: list[Row]) -> int | None:
     return None
 
 
-def to_model(rows: list[Row], *, maintenance_year: float, run_year: float, discount_rate: float,
-             retain_rows: list[Row] | None) -> Tco:
+def to_model(rows: list[Row], *, maintenance_year: float, run_year: float, change_year: float, steady: tuple[int, int, int],
+             discount_rate: float, retain_rows: list[Row] | None) -> Tco:
     tco, npv = tco_of(rows), npv_of(rows, discount_rate)
     base_tco, base_npv = (tco_of(retain_rows), npv_of(retain_rows, discount_rate)) if retain_rows else (tco, npv)
+    base_change = sum(r[4] for r in retain_rows) if retain_rows else sum(r[4] for r in rows)
     return Tco(
         horizon_years=len(rows), discount_rate=discount_rate, baseline_maintenance_jpy_per_year=maintenance_year,
-        baseline_run_jpy_per_year=run_year,
-        yearly=[CashFlowYear(year=r[0], migration_jpy=r[1], run_jpy=r[2], maintenance_jpy=r[3], total_jpy=total(r))
-                for r in rows],
+        baseline_run_jpy_per_year=run_year, baseline_change_jpy_per_year=change_year,
+        steady_state_maintenance_jpy=steady[0], steady_state_run_jpy=steady[1], steady_state_change_jpy=steady[2],
+        yearly=[CashFlowYear(year=r[0], migration_jpy=r[1], run_jpy=r[2], maintenance_jpy=r[3], change_jpy=r[4],
+                             total_jpy=total(r)) for r in rows],
         migration_total_jpy=sum(r[1] for r in rows), run_total_jpy=sum(r[2] for r in rows),
-        maintenance_total_jpy=sum(r[3] for r in rows), tco_jpy=tco, npv_cost_jpy=npv,
+        maintenance_total_jpy=sum(r[3] for r in rows), change_total_jpy=sum(r[4] for r in rows),
+        change_savings_vs_retain_jpy=base_change - sum(r[4] for r in rows), tco_jpy=tco, npv_cost_jpy=npv,
         savings_vs_retain_jpy=base_tco - tco, npv_vs_retain_jpy=base_npv - npv,
         payback_year=payback_year(rows, retain_rows) if retain_rows else None)
