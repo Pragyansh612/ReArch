@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = AnalysisResult.model_validate_json(path.read_text(encoding="utf-8"))
         scenario = load_scenario(Path(args.scenario))
-        rec = recommend(result, profile=args.profile or None, scenario=scenario, sensitivity=False)
+        rec = recommend(result, profile=args.profile or None, scenario=scenario)  # with breakevens, for the headlines
         rm = build_roadmap(rec, result, scenario, load_roadmap_config(), rec.meta.selected_profile)
     except (ValueError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)

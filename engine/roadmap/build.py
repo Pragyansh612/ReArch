@@ -9,6 +9,7 @@ from engine.config import Strategy
 from engine.roadmap import deps as deps_mod
 from engine.roadmap.config import RoadmapConfig
 from engine.roadmap.economics import build_economics
+from engine.roadmap.headlines import build_headlines
 from engine.roadmap.portfolio import build_selection
 from engine.roadmap.scheduler import Job, Placement, duration_months, monthly_spend, schedule
 from engine.roadmap.schema import (
@@ -194,4 +195,5 @@ def build_roadmap(rec: Recommendation, analysis: AnalysisResult, scenario: Clien
         portfolio=selection, waves=waves, items=sorted(items, key=lambda i: (i.wave, i.start_month, i.id)),
         unscheduled=[Unscheduled(id=i, name=by_id[i].name, reason_codes=c) for i, c in sorted(failed.items())],
         retained_packages=sorted(p for p, s in strategy_by_pkg.items() if s == "retain"), unlocks=unlocks, economics=econ,
+        headlines=build_headlines(rec, analysis, selection, items, econ, unlocks, finish),
         assumptions={"illustrative": True, "roadmap": rcfg.model_dump(mode="json")})

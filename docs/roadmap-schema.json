@@ -56,6 +56,10 @@
           "title": "Score Lost",
           "type": "number"
         },
+        "weighted_score_lost": {
+          "title": "Weighted Score Lost",
+          "type": "number"
+        },
         "migration_cost_saved_jpy": {
           "title": "Migration Cost Saved Jpy",
           "type": "integer"
@@ -71,6 +75,7 @@
         "unconstrained",
         "constrained",
         "score_lost",
+        "weighted_score_lost",
         "migration_cost_saved_jpy",
         "reason"
       ],
@@ -148,6 +153,48 @@
         "kpis"
       ],
       "title": "Economics",
+      "type": "object"
+    },
+    "Headline": {
+      "description": "A deterministic sentence built from the numbers in `numbers` (no LLM). The UI's executive summary.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "numbers": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Numbers",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "text",
+        "numbers"
+      ],
+      "title": "Headline",
       "type": "object"
     },
     "Item": {
@@ -471,6 +518,10 @@
           "title": "Total Score",
           "type": "number"
         },
+        "total_unweighted_score": {
+          "title": "Total Unweighted Score",
+          "type": "number"
+        },
         "total_migration_cost_jpy": {
           "title": "Total Migration Cost Jpy",
           "type": "integer"
@@ -492,6 +543,7 @@
       },
       "required": [
         "total_score",
+        "total_unweighted_score",
         "total_migration_cost_jpy",
         "choices",
         "strategy_mix"
@@ -521,6 +573,10 @@
           "title": "Score",
           "type": "number"
         },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
         "migration_cost_jpy": {
           "title": "Migration Cost Jpy",
           "type": "integer"
@@ -530,6 +586,7 @@
         "package_id",
         "strategy",
         "score",
+        "weight",
         "migration_cost_jpy"
       ],
       "title": "PortfolioChoice",
@@ -550,6 +607,10 @@
         },
         "method": {
           "title": "Method",
+          "type": "string"
+        },
+        "objective": {
+          "title": "Objective",
           "type": "string"
         },
         "budget_binding": {
@@ -575,6 +636,7 @@
         "weights",
         "budget_ceiling_jpy",
         "method",
+        "objective",
         "budget_binding",
         "unconstrained",
         "constrained",
@@ -880,6 +942,13 @@
     "economics": {
       "$ref": "#/$defs/Economics"
     },
+    "headlines": {
+      "items": {
+        "$ref": "#/$defs/Headline"
+      },
+      "title": "Headlines",
+      "type": "array"
+    },
     "assumptions": {
       "additionalProperties": true,
       "title": "Assumptions",
@@ -895,6 +964,7 @@
     "retained_packages",
     "unlocks",
     "economics",
+    "headlines",
     "assumptions"
   ],
   "title": "Roadmap",

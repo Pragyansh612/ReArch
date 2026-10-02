@@ -1,0 +1,15 @@
+{
+  "ofbiz": {
+    "repo": "https://github.com/apache/ofbiz-framework (commit c572aa78)",
+    "scope": [
+      "applications/order",
+      "applications/product",
+      "applications/party",
+      "applications/accounting"
+    ]
+  },
+  "legacy-sample": {
+    "repo": "fixtures/legacy-sample",
+    "scope": []
+  }
+}

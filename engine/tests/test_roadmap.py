@@ -11,12 +11,12 @@ import pytest
 
 from analyzer.analyze import analyze
 from analyzer.schema import AnalysisResult
-from engine.config import EngineConfig
+from engine.config import EngineConfig, Strategy
 from engine.recommend import recommend
 from engine.roadmap.__main__ import main as cli_main
 from engine.roadmap.build import build_roadmap
 from engine.roadmap.config import RoadmapConfig, Unlock
-from engine.roadmap.portfolio import SCALE, package_options, select
+from engine.roadmap.portfolio import Opt, package_options, package_weights, select
 from engine.roadmap.schema import Item, Roadmap
 from engine.scenario import ClientScenario
 from engine.schema import Recommendation
@@ -54,14 +54,14 @@ def people_by_month(items: list[Item]) -> dict[int, int]:
 
 # --- portfolio ----------------------------------------------------------------------------------------------------------------
 
-def _brute_force(options: dict, budget: int, order: dict) -> tuple[int, int, tuple]:  # type: ignore[type-arg]
+def _brute_force(options: dict, budget: int, order: dict, weights: dict) -> tuple[int, int, tuple]:  # type: ignore[type-arg]
     ids = sorted(options)
     best = None
     for combo in itertools.product(*(options[p] for p in ids)):
         cost = sum(o.cost for o in combo)
         if cost > budget:
             continue
-        key = (-sum(o.score_int for o in combo), cost, tuple(order[o.strategy] for o in combo))
+        key = (-sum(weights[p] * o.score_int for p, o in zip(ids, combo, strict=True)), cost, tuple(order[o.strategy] for o in combo))
         if best is None or key < best:
             best = key
     assert best is not None
@@ -72,10 +72,11 @@ def _brute_force(options: dict, budget: int, order: dict) -> tuple[int, int, tup
 def test_the_optimiser_matches_brute_force_on_the_fixture(rec: Recommendation, cfg: EngineConfig, budget: int) -> None:
     options = package_options(rec, "long_term_value")
     order = {s: i for i, s in enumerate(cfg.strategies)}
-    chosen = select(options, budget, order)
+    weights = package_weights(rec)
+    chosen = select(options, budget, order, weights)
     ids = sorted(options)
-    got = (sum(chosen[p].score_int for p in ids), sum(chosen[p].cost for p in ids), tuple(order[chosen[p].strategy] for p in ids))
-    assert got == _brute_force(options, budget, order)  # same score, same cost and the same tie-breaking
+    got = (sum(weights[p] * chosen[p].score_int for p in ids), sum(chosen[p].cost for p in ids), tuple(order[chosen[p].strategy] for p in ids))
+    assert got == _brute_force(options, budget, order, weights)  # same objective, same cost and the same tie-breaking
     assert got[1] <= budget
 
 
@@ -102,9 +103,48 @@ def test_a_binding_budget_downgrades_exactly_the_packages_that_changed(ltv: Road
 def test_portfolio_totals_match_their_choices(ltv: Roadmap) -> None:
     for pf in (ltv.portfolio.unconstrained, ltv.portfolio.constrained):
         assert pf.total_migration_cost_jpy == sum(c.migration_cost_jpy for c in pf.choices)
-        assert pf.total_score == pytest.approx(sum(c.score for c in pf.choices), abs=1e-4)
+        assert sum(c.weight for c in pf.choices) == pytest.approx(1.0, abs=1e-5)
+        assert pf.total_score == pytest.approx(sum(c.weight * c.score for c in pf.choices), abs=1e-3)  # weighted mean, 0-100
+        assert pf.total_unweighted_score == pytest.approx(sum(c.score for c in pf.choices), abs=1e-4)
         assert sum(pf.strategy_mix.values()) == len(pf.choices)
-    assert round(ltv.portfolio.constrained.total_score * SCALE) == round(sum(round(c.score * SCALE) for c in ltv.portfolio.constrained.choices))
+
+
+def test_package_weights_are_each_packages_share_of_the_estate_do_nothing_cost(rec: Recommendation, ltv: Roadmap) -> None:
+    weights = package_weights(rec)
+    for wid, w in rec.work_packages.items():
+        retain = next(o for o in w.options if o.strategy == "retain")
+        assert retain.tco is not None and weights[wid] == retain.tco.tco_jpy
+    total = sum(weights.values())
+    for c in ltv.portfolio.constrained.choices:  # the roadmap's weights are those shares
+        assert c.weight == pytest.approx(weights[c.package_id] / total, abs=1e-6)
+    big, small = max(weights, key=lambda k: weights[k]), min(weights, key=lambda k: weights[k])
+    assert weights[big] > weights[small]
+
+
+def test_two_otherwise_identical_packages_of_different_size_get_proportionally_different_weight() -> None:
+    options = {"big": [Opt("retain", 50_000, 0), Opt("rehost", 80_000, 10)],
+               "small": [Opt("retain", 50_000, 0), Opt("rehost", 80_000, 10)]}  # identical options, scores and costs
+    order: dict[Strategy, int] = {"retain": 0, "rehost": 1}
+    weights = {"big": 3_000_000, "small": 1_000_000}  # the big package carries 3x the do-nothing cost
+    assert weights["big"] / weights["small"] == 3
+    chosen = select(options, 10, order, weights)  # budget for exactly one upgrade
+    assert chosen["big"].strategy == "rehost" and chosen["small"].strategy == "retain"  # spend goes to the larger value at stake
+    assert select(options, 10, order, {"big": 1_000_000, "small": 3_000_000})["small"].strategy == "rehost"
+    assert select(options, 10, order)["big"].strategy == "retain"  # unweighted: a tie, broken by the fixed rule
+    assert select(options, 20, order, weights)["big"].strategy == select(options, 20, order, weights)["small"].strategy == "rehost"
+
+
+def test_the_objective_is_weighted_in_proportion_to_value_at_stake(rec: Recommendation, cfg: EngineConfig) -> None:
+    """Scaling one package's value at stake changes the objective by exactly that factor for that package."""
+    options = package_options(rec, "long_term_value")
+    weights = package_weights(rec)
+    order = {s: i for i, s in enumerate(cfg.strategies)}
+    base = select(options, 10**12, order, weights)
+    pid = max(weights, key=lambda k: weights[k])
+    objective = sum(weights[p] * o.score_int for p, o in base.items())
+    heavier = {**weights, pid: weights[pid] * 4}
+    again = select(options, 10**12, order, heavier)
+    assert sum(heavier[p] * o.score_int for p, o in again.items()) == objective + 3 * weights[pid] * base[pid].score_int
 
 
 def test_scheduled_strategies_are_the_constrained_portfolio(ltv: Roadmap) -> None:
@@ -431,3 +471,63 @@ def test_cli_writes_roadmap_json(tmp_path: Path) -> None:
     assert out["meta"]["profile"] == "long_term_value" and out["items"] and out["waves"][-1]["name"] == "What modernization unlocks"
     assert cli_main([str(tmp_path / "missing.json")]) == 2
     assert cli_main([str(analysis_path), "--profile", "bogus", "--out", str(tmp_path)]) == 2
+
+
+# --- headline findings ----------------------------------------------------------------------------------------------------------
+
+def test_headlines_are_deterministic_sentences_built_from_the_numbers(client: Roadmap, rec: Recommendation, analysis: AnalysisResult) -> None:
+    by = {h.id: h for h in client.headlines}
+    assert list(by) == ["portfolio", "value", "largest_exposure", "rejected_option", "breakeven_question", "calibration", "unlocks",
+                        "broken_references", "dependencies"]
+    assert all(h.text.endswith(".") and h.kind for h in client.headlines)
+    p = by["portfolio"]
+    assert p.numbers["migration_cost_jpy"] == client.portfolio.constrained.total_migration_cost_jpy
+    assert f"{client.portfolio.constrained.total_migration_cost_jpy / 1e6:,.1f} million" in p.text or p.numbers["migration_cost_jpy"] < 1e6
+    v = by["value"]
+    assert v.numbers["npv_vs_retain_jpy"] == client.economics.npv_vs_retain_jpy and v.numbers["peak_investment_jpy"] == client.economics.peak_investment_jpy
+    assert (f"quarter {client.economics.payback_quarter}" in v.text) == (client.economics.payback_quarter is not None)
+    broken = [f for f in analysis.findings if f.kind == "broken_reference"]
+    assert by["broken_references"].numbers["count"] == len(broken) and str(len(broken)) in by["broken_references"].text
+    d = rec.estate_findings
+    assert by["dependencies"].numbers == {"outdated": d.outdated, "checked": d.checked, "declared": d.declared}
+
+
+def test_the_rejected_option_headline_is_the_most_expensive_candidate_not_chosen(client: Roadmap, rec: Recommendation) -> None:
+    h = next(x for x in client.headlines if x.id == "rejected_option")
+    chosen = {c.package_id: c.strategy for c in client.portfolio.constrained.choices}
+    costs = [o.migration_cost_jpy for pid, w in rec.work_packages.items() for o in w.options
+             if o.eligible and o.strategy != chosen[pid] and o.migration_cost_jpy is not None]
+    assert h.numbers["migration_cost_jpy"] == max(costs)
+    assert "rejected because" in h.text
+
+
+def test_the_breakeven_headline_names_the_largest_value_at_stake_within_ten_times(client: Roadmap, rec: Recommendation) -> None:
+    h = next(x for x in client.headlines if x.id == "breakeven_question")
+    weights = {c.package_id: c.weight for c in client.portfolio.constrained.choices}
+    eligible = {}
+    for pid, w in rec.work_packages.items():
+        assert w.breakeven is not None
+        if any(o.multiple_of_baseline and 0.1 <= o.multiple_of_baseline <= 10 for o in w.breakeven.overtaking):
+            eligible[pid] = weights[pid]
+    top = max(eligible, key=lambda k: (eligible[k], k))
+    assert top in h.text and h.numbers["share_of_do_nothing_cost"] == round(eligible[top], 4)
+    multiple = float(h.numbers["multiple_of_baseline"])
+    assert float(h.numbers["breakeven_jpy_per_year"]) > 0 and 0.1 <= multiple <= 10
+
+
+def test_the_breakeven_headline_degrades_gracefully_without_the_analysis(
+        tight_rec: Recommendation, analysis: AnalysisResult, tight_scenario: ClientScenario, rcfg: RoadmapConfig) -> None:
+    rm = make(tight_rec, analysis, tight_scenario, rcfg, "long_term_value")  # tight_rec was computed without sensitivity
+    h = next(x for x in rm.headlines if x.id == "breakeven_question")
+    assert "has not been computed" in h.text and h.numbers == {}
+
+
+def test_the_largest_exposure_headline_follows_the_weights(ltv: Roadmap) -> None:
+    h = next(x for x in ltv.headlines if x.id == "largest_exposure")
+    top = max(ltv.portfolio.constrained.choices, key=lambda c: (c.weight, c.package_id))
+    assert top.package_id in h.text and h.numbers["share_of_do_nothing_cost"] == round(top.weight, 4)
+
+
+def test_a_binding_budget_is_mentioned_in_the_portfolio_headline(ltv: Roadmap) -> None:
+    h = next(x for x in ltv.headlines if x.id == "portfolio")
+    assert h.numbers["budget_downgrades"] == len(ltv.portfolio.downgrades) and "budget forced" in h.text

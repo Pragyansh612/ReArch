@@ -64,7 +64,8 @@ class Downgrade(BaseModel):
     name: str
     unconstrained: Strategy
     constrained: Strategy
-    score_lost: float
+    score_lost: float  # the package's own 0-100 score lost
+    weighted_score_lost: float  # that loss times the package's share of the estate's do-nothing TCO
     migration_cost_saved_jpy: int
     reason: str
 
@@ -73,11 +74,13 @@ class PortfolioChoice(BaseModel):
     package_id: str
     strategy: Strategy
     score: float
+    weight: float  # the package's share of the estate's 5-year do-nothing (retain) TCO: its value at stake
     migration_cost_jpy: int
 
 
 class Portfolio(BaseModel):
-    total_score: float
+    total_score: float  # retain-TCO-weighted mean of the chosen options' scores (0-100)
+    total_unweighted_score: float  # plain sum of the chosen options' scores, for reference
     total_migration_cost_jpy: int
     choices: list[PortfolioChoice]
     strategy_mix: dict[str, int]
@@ -88,6 +91,7 @@ class PortfolioSelection(BaseModel):
     weights: Priorities
     budget_ceiling_jpy: int
     method: str
+    objective: str
     budget_binding: bool  # True when the unconstrained portfolio exceeds the budget
     unconstrained: Portfolio
     constrained: Portfolio
@@ -147,6 +151,15 @@ class Economics(BaseModel):
     kpis: list[KpiTrajectory]
 
 
+class Headline(BaseModel):
+    """A deterministic sentence built from the numbers in `numbers` (no LLM). The UI's executive summary."""
+
+    id: str
+    kind: str
+    text: str
+    numbers: dict[str, float | int | str]
+
+
 class RoadmapMeta(BaseModel):
     schema_version: str = SCHEMA_VERSION
     analysis_name: str
@@ -168,4 +181,5 @@ class Roadmap(BaseModel):
     retained_packages: list[str]
     unlocks: list[Opportunity]
     economics: Economics
+    headlines: list[Headline]
     assumptions: dict[str, Any]

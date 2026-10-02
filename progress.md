@@ -14,13 +14,34 @@ Plan reference: `BUILD_PLAN.md`. Rules: `CLAUDE.md`. Convention: the user runs a
 | 3 | Scoring and strategies (`engine/`) | Done, committed |
 | 3.5 | Client scenario, TCO + retain, objective-driven value, constraints, work packages, calibration fixes | Done, committed |
 | 3.6 | Model fixes: breakeven, calibration, cutover approach, change-cost avoidance (model frozen after this) | Built and verified; awaiting commit |
-| 4 | Portfolio and roadmap (`engine/roadmap/`) | Built and verified; awaiting user review and commit |
-| 5 | API | Not started |
+| 4 | Portfolio and roadmap (`engine/roadmap/`) | Done, committed; objective fixed in the Phase 4 review (see log) |
+| 5 | API (`api/`) | Built and verified; awaiting user review and commit |
 | 6 | Web UI | Not started |
 | 7 | LLM layer | Not started |
 | 8 | Polish and deploy | Not started |
 
 ## Log
+
+### 2026-10-01 — Phase 4 review fix and Phase 5 (API)
+**Part A: objective fix and headline findings (model otherwise frozen).**
+- Portfolio objective now weights each package's 0-100 score by its value at stake: its five-year do-nothing (retain) TCO as a share of the estate's.
+  The justification is in the methodology (a flaw in the objective's design, not tuning; no new assumption). Test: two otherwise identical packages of
+  different size get weights in the ratio of their do-nothing costs and the optimiser spends the budget on the larger; brute force still matches.
+- **What changed on OFBiz.** Client profile: nothing (the budget does not bind): 11 rehost + 4 retain, cart cycle retained. `long_term_value`: the shopping-cart cycle
+  (20.1% of the estate's do-nothing cost) is now **rearchitected, months 4-17**, instead of being dropped; mix 2 rearchitect (cart cycle, `accounting/god-class-cluster-2`)
+  + 11 rehost + 2 retain, ¥246.3M of the ¥250M budget, finish month 22, NPV -¥161.5M, peak investment ¥249.0M, 13 downgrades. The reconciliation unlock is lost because
+  accounting is downgraded. The cart cycle is still not addressed under the client profile.
+- Roadmap `headlines`: nine deterministic sentences (portfolio, value, largest exposure, most expensive rejected option and why, assumption most worth validating,
+  model-vs-client maintenance gap, unlocks, broken references, outdated dependencies), each with the numbers it states. Tests check each against its source.
+**Part B: the API (`api/`, 64 tests; 333 in the repo; `make test`, `make lint` pass).**
+- Data model: Analysis (immutable), ScenarioVersion (versioned), Run (cached by an input hash), RunArtifact (roadmaps, sensitivity). Endpoints and rules in `docs/api.md`.
+- Number ids and `GET /explain/{id}`: every number in a run has an id (`run:doc:JSON pointer`); a test resolves every number in the fixture's recommendation and roadmap.
+- Demo mode (`DEMO_MODE=1`) blocks `POST /analyses` and serves preloaded analyses; `make seed`; the OFBiz analysis is committed as `data/demo/ofbiz.json.gz` (61 KB).
+- Contract: `docs/openapi.json` (17 paths, 89 schemas) and `web/src/lib/api-types.ts` generated with openapi-typescript (`make types`); strict `tsc` and eslint pass.
+- Found and fixed during the work: (1) the default scenario file (written for OFBiz) broke other analyses, so an analysis now keeps only the scenario entries for modules it
+  has; (2) `PUT` leaked a pydantic error as a 500 (now 422) and priorities allowed negative weights (now bounded); (3) YAML parsing was 70% of recompute time (now cached);
+  (4) the background sensitivity job in the web process slowed concurrent requests from about 100 ms to several seconds (now a separate process, debounced to the latest run).
+- Latency (real HTTP, OFBiz): scenario `PUT` + full recompute median 108 ms (74-144), what-if 50 ms, reads 2-8 ms; sensitivity ready about 9 s after start-up.
 
 ### 2026-10-01 — Phase 3.6 (model fixes) and Phase 4 (portfolio and roadmap)
 Integrity rule held: no weight or parameter was tuned to produce an answer; the model is frozen after Part A except for bug fixes.
@@ -169,14 +190,11 @@ The `long_term_value` preset rearchitects every module: ¥900M, 11,251 days, 70 
 9. Test evidence undercounts OFBiz (`testdef/*.xml` suites are not counted), so test gaps are overstated.
 
 ## Open decisions (for the user)
-1. **Portfolio objective is package-size-blind.** Weight each package's score by size (KLOC) or by value at stake so the optimiser stops abandoning the
-   largest package first? (Not changed: it is the objective as specified.)
-2. **Calibrate the maintenance baseline.** Supply `client_reported_maintenance_jpy` per module; the breakevens show how far off the model can be before
-   choices change (retained accounting packages flip to refactor at 5-12x the baseline).
-3. **Strategy mix is still thin.** Replatform and refactor are almost never chosen; only the long-term-value weight pushes towards ambition (cost/speed
-   collinearity, documented, presets unchanged).
-4. **Capacity and foundations:** real team sizes and foundation estimates (12 people, formulas in config) decide the timeline.
-5. **Phase 5 onward** (API, web UI, LLM layer) can start: all numbers and breakdowns now exist as JSON contracts (analysis, recommendation, roadmap).
+1. **Phase 6 (web UI)** can start: every screen has an endpoint, typed contract (`web/src/lib/api-types.ts`), number ids for "show calculation", and headline findings for the executive summary.
+2. **Strategy mix is still thin** (replatform and refactor almost never chosen); only the long-term-value weight pushes towards ambition (cost/speed collinearity, documented).
+3. **Calibration:** client-reported maintenance per module (accepted by the API) and real team/foundation numbers decide the timeline and the economics.
+4. **Deployment:** run the API with `DEMO_MODE=1` on a public server; decide the production origin for CORS and where the SQLite file lives (a persistent volume).
+5. **Cart cluster under the client profile** stays retained (refactor does not pay back in five years under these assumptions); the client's own maintenance figures are the lever.
 
 ## Known gaps / risks
 - **Logic outside Java** (main blind spot): in the four OFBiz components only 360 of 2,271 service definitions are Java;
@@ -187,6 +205,8 @@ The `long_term_value` preset rearchitects every module: ¥900M, 11,251 days, 70 
 - Everything in `engine:` is illustrative (labelled in config and echoed into every output) and the client is fictional. No market data is claimed.
 - The scenario's KPI current/target values are descriptive; the model uses only the objective weights.
 - Cost/speed collinearity is a documented limitation of the scoring (presets unchanged by decision).
+- API: sensitivity (flip points, breakevens) is computed in a separate process after a scenario edit and may be "pending" for several seconds; headlines say so until it is ready. A single worker process serves all analyses.
+- API: SQLite and a local data directory suit a demo or a single server, not several writers; no authentication (demo mode is read-only for analyses, editing scenarios is open).
 - Roadmap: capacity, foundation estimates, quick-win thresholds and the unlock mapping are illustrative configuration; savings are a step after cutover.
 - Work-package tests and confidence are inherited from the module; a cross-module cycle is split per module and scored in fragments.
 - testdef cases and Groovy tests overlap, so the engine takes their max, not their sum; test presence is not coverage.

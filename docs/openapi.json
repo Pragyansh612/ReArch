@@ -1,0 +1,6371 @@
+{
+  "components": {
+    "schemas": {
+      "AnalysisCreate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "letters, digits, '.', '_' and '-'; default derived from the repo",
+            "title": "Name"
+          },
+          "repo": {
+            "description": "an https git URL, or an absolute server path under a configured root",
+            "title": "Repo",
+            "type": "string"
+          },
+          "scope": {
+            "default": [],
+            "description": "directories relative to the repo to analyse; empty = the whole repo",
+            "items": {
+              "type": "string"
+            },
+            "title": "Scope",
+            "type": "array"
+          }
+        },
+        "required": [
+          "repo"
+        ],
+        "title": "AnalysisCreate",
+        "type": "object"
+      },
+      "AnalysisListItem": {
+        "properties": {
+          "classes": {
+            "title": "Classes",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "source",
+          "status",
+          "classes",
+          "loc",
+          "created_at"
+        ],
+        "title": "AnalysisListItem",
+        "type": "object"
+      },
+      "AnalysisStatus": {
+        "properties": {
+          "classes": {
+            "title": "Classes",
+            "type": "integer"
+          },
+          "elapsed_seconds": {
+            "title": "Elapsed Seconds",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "cloning",
+              "analyzing",
+              "done",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "message",
+          "source",
+          "elapsed_seconds",
+          "classes",
+          "loc"
+        ],
+        "title": "AnalysisStatus",
+        "type": "object"
+      },
+      "AnalysisSummary": {
+        "properties": {
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageRow"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "findings": {
+            "$ref": "#/components/schemas/FindingsSummary"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number_id_prefix": {
+            "title": "Number Id Prefix",
+            "type": "string"
+          },
+          "repo": {
+            "title": "Repo",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scenario_version": {
+            "title": "Scenario Version",
+            "type": "integer"
+          },
+          "scope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scope",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Totals",
+            "type": "object"
+          },
+          "unanalyzed": {
+            "additionalProperties": true,
+            "title": "Unanalyzed",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "source",
+          "repo",
+          "scope",
+          "created_at",
+          "totals",
+          "coverage",
+          "findings",
+          "unanalyzed",
+          "scenario_version",
+          "run_id",
+          "number_id_prefix"
+        ],
+        "title": "AnalysisSummary",
+        "type": "object"
+      },
+      "AssumptionRow": {
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current"
+          },
+          "default": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "illustrative": {
+            "default": "ILLUSTRATIVE: not market data; calibrate against the client's own records",
+            "title": "Illustrative",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "maximum": {
+            "title": "Maximum",
+            "type": "number"
+          },
+          "minimum": {
+            "title": "Minimum",
+            "type": "number"
+          },
+          "nullable": {
+            "title": "Nullable",
+            "type": "boolean"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "unit",
+          "description",
+          "group",
+          "default",
+          "current",
+          "minimum",
+          "maximum",
+          "nullable"
+        ],
+        "title": "AssumptionRow",
+        "type": "object"
+      },
+      "AssumptionsResponse": {
+        "properties": {
+          "illustrative": {
+            "default": "ILLUSTRATIVE: not market data; calibrate against the client's own records",
+            "title": "Illustrative",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssumptionRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "note": {
+            "default": "Only these assumptions are editable (PUT /analyses/{id}/scenario, field 'assumptions'); the model's formulas are fixed.",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "AssumptionsResponse",
+        "type": "object"
+      },
+      "Breakeven": {
+        "description": "How wrong the maintenance baseline would have to be to change the recommendation (selected profile).",
+        "properties": {
+          "baseline_jpy_per_year": {
+            "title": "Baseline Jpy Per Year",
+            "type": "number"
+          },
+          "chosen": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Chosen",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "overtaking": {
+            "items": {
+              "$ref": "#/components/schemas/Overtake"
+            },
+            "title": "Overtaking",
+            "type": "array"
+          },
+          "retain_loses_to_every_alternative_jpy_per_year": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retain Loses To Every Alternative Jpy Per Year"
+          },
+          "retain_stops_being_best_jpy_per_year": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retain Stops Being Best Jpy Per Year"
+          }
+        },
+        "required": [
+          "baseline_jpy_per_year",
+          "chosen",
+          "overtaking",
+          "retain_stops_being_best_jpy_per_year",
+          "retain_loses_to_every_alternative_jpy_per_year",
+          "note"
+        ],
+        "title": "Breakeven",
+        "type": "object"
+      },
+      "CashFlowYear": {
+        "properties": {
+          "change_jpy": {
+            "title": "Change Jpy",
+            "type": "integer"
+          },
+          "maintenance_jpy": {
+            "title": "Maintenance Jpy",
+            "type": "integer"
+          },
+          "migration_jpy": {
+            "title": "Migration Jpy",
+            "type": "integer"
+          },
+          "run_jpy": {
+            "title": "Run Jpy",
+            "type": "integer"
+          },
+          "total_jpy": {
+            "title": "Total Jpy",
+            "type": "integer"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "migration_jpy",
+          "run_jpy",
+          "maintenance_jpy",
+          "change_jpy",
+          "total_jpy"
+        ],
+        "title": "CashFlowYear",
+        "type": "object"
+      },
+      "ClassDetail": {
+        "properties": {
+          "controllers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Controllers",
+            "type": "array"
+          },
+          "db_coupling": {
+            "items": {
+              "$ref": "#/components/schemas/DbInstance"
+            },
+            "title": "Db Coupling",
+            "type": "array"
+          },
+          "depended_on_by": {
+            "items": {
+              "$ref": "#/components/schemas/Edge"
+            },
+            "title": "Depended On By",
+            "type": "array"
+          },
+          "depends_on": {
+            "items": {
+              "$ref": "#/components/schemas/Edge"
+            },
+            "title": "Depends On",
+            "type": "array"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "hotspot_score": {
+            "title": "Hotspot Score",
+            "type": "number"
+          },
+          "legacy_markers": {
+            "items": {
+              "$ref": "#/components/schemas/LegacyMarker"
+            },
+            "title": "Legacy Markers",
+            "type": "array"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/ClassMetrics"
+          },
+          "number_id_prefix": {
+            "title": "Number Id Prefix",
+            "type": "string"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ServiceMapping"
+            },
+            "title": "Services",
+            "type": "array"
+          }
+        },
+        "required": [
+          "metrics",
+          "package_id",
+          "hotspot_score",
+          "findings",
+          "db_coupling",
+          "legacy_markers",
+          "services",
+          "controllers",
+          "depends_on",
+          "depended_on_by",
+          "number_id_prefix"
+        ],
+        "title": "ClassDetail",
+        "type": "object"
+      },
+      "ClassMetrics": {
+        "description": "One top-level Java type (one per file in practice).",
+        "properties": {
+          "complexity": {
+            "title": "Complexity",
+            "type": "integer"
+          },
+          "complexity_band": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Complexity Band",
+            "type": "string"
+          },
+          "complexity_percentile": {
+            "title": "Complexity Percentile",
+            "type": "number"
+          },
+          "controller_fan_in": {
+            "title": "Controller Fan In",
+            "type": "integer"
+          },
+          "depended_on_by": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Depended On By",
+            "type": "array"
+          },
+          "depends_on": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Depends On",
+            "type": "array"
+          },
+          "fan_in": {
+            "title": "Fan In",
+            "type": "integer"
+          },
+          "fan_in_percentile": {
+            "title": "Fan In Percentile",
+            "type": "number"
+          },
+          "fan_out": {
+            "title": "Fan Out",
+            "type": "integer"
+          },
+          "fan_out_percentile": {
+            "title": "Fan Out Percentile",
+            "type": "number"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "fqn": {
+            "title": "Fqn",
+            "type": "string"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "loc_percentile": {
+            "title": "Loc Percentile",
+            "type": "number"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "service_fan_in": {
+            "title": "Service Fan In",
+            "type": "integer"
+          },
+          "size_tier": {
+            "enum": [
+              "none",
+              "large",
+              "extreme"
+            ],
+            "title": "Size Tier",
+            "type": "string"
+          },
+          "used": {
+            "title": "Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "fqn",
+          "module",
+          "file",
+          "loc",
+          "fan_in",
+          "fan_out",
+          "service_fan_in",
+          "controller_fan_in",
+          "used",
+          "complexity",
+          "complexity_band",
+          "size_tier",
+          "loc_percentile",
+          "complexity_percentile",
+          "fan_in_percentile",
+          "fan_out_percentile",
+          "depends_on",
+          "depended_on_by"
+        ],
+        "title": "ClassMetrics",
+        "type": "object"
+      },
+      "ClassRow": {
+        "properties": {
+          "complexity": {
+            "title": "Complexity",
+            "type": "integer"
+          },
+          "complexity_band": {
+            "title": "Complexity Band",
+            "type": "string"
+          },
+          "controller_fan_in": {
+            "title": "Controller Fan In",
+            "type": "integer"
+          },
+          "fan_in": {
+            "title": "Fan In",
+            "type": "integer"
+          },
+          "fan_out": {
+            "title": "Fan Out",
+            "type": "integer"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "fqn": {
+            "title": "Fqn",
+            "type": "string"
+          },
+          "hotspot_score": {
+            "title": "Hotspot Score",
+            "type": "number"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          },
+          "service_fan_in": {
+            "title": "Service Fan In",
+            "type": "integer"
+          },
+          "size_tier": {
+            "title": "Size Tier",
+            "type": "string"
+          },
+          "used": {
+            "title": "Used",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fqn",
+          "name",
+          "module",
+          "package_id",
+          "file",
+          "loc",
+          "complexity",
+          "complexity_band",
+          "size_tier",
+          "fan_in",
+          "fan_out",
+          "service_fan_in",
+          "controller_fan_in",
+          "used",
+          "hotspot_score"
+        ],
+        "title": "ClassRow",
+        "type": "object"
+      },
+      "ClassesPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ClassRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "ClassesPage",
+        "type": "object"
+      },
+      "Component": {
+        "properties": {
+          "contribution": {
+            "title": "Contribution",
+            "type": "number"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "measure": {
+            "title": "Measure",
+            "type": "number"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "measure",
+          "weight",
+          "contribution"
+        ],
+        "title": "Component",
+        "type": "object"
+      },
+      "CoverageRow": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "entity_auto_defs": {
+            "title": "Entity Auto Defs",
+            "type": "integer"
+          },
+          "groovy_logic_files": {
+            "title": "Groovy Logic Files",
+            "type": "integer"
+          },
+          "implemented_defs": {
+            "title": "Implemented Defs",
+            "type": "integer"
+          },
+          "java_defs": {
+            "title": "Java Defs",
+            "type": "integer"
+          },
+          "java_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Java Share"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "service_defs_by_engine": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Service Defs By Engine",
+            "type": "object"
+          }
+        },
+        "required": [
+          "module",
+          "confidence",
+          "java_share",
+          "java_defs",
+          "implemented_defs",
+          "entity_auto_defs",
+          "groovy_logic_files",
+          "service_defs_by_engine"
+        ],
+        "title": "CoverageRow",
+        "type": "object"
+      },
+      "CriterionScore": {
+        "properties": {
+          "contribution": {
+            "title": "Contribution",
+            "type": "number"
+          },
+          "criterion": {
+            "enum": [
+              "cost",
+              "risk",
+              "speed",
+              "long_term_value"
+            ],
+            "title": "Criterion",
+            "type": "string"
+          },
+          "goodness": {
+            "title": "Goodness",
+            "type": "number"
+          },
+          "raw": {
+            "title": "Raw",
+            "type": "number"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "criterion",
+          "raw",
+          "goodness",
+          "weight",
+          "contribution"
+        ],
+        "title": "CriterionScore",
+        "type": "object"
+      },
+      "Criticality": {
+        "properties": {
+          "heuristic_value": {
+            "title": "Heuristic Value",
+            "type": "integer"
+          },
+          "inputs": {
+            "$ref": "#/components/schemas/CriticalityInputs"
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "source": {
+            "enum": [
+              "heuristic",
+              "override"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "default": "proposed",
+            "enum": [
+              "proposed",
+              "confirmed_by_override"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "value",
+          "source",
+          "heuristic_value",
+          "inputs"
+        ],
+        "title": "Criticality",
+        "type": "object"
+      },
+      "CriticalityInputs": {
+        "properties": {
+          "controller_fan_in": {
+            "title": "Controller Fan In",
+            "type": "integer"
+          },
+          "data_writes": {
+            "title": "Data Writes",
+            "type": "integer"
+          },
+          "inbound_share": {
+            "title": "Inbound Share",
+            "type": "number"
+          },
+          "inbound_total": {
+            "title": "Inbound Total",
+            "type": "integer"
+          },
+          "java_cross_module_fan_in": {
+            "title": "Java Cross Module Fan In",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "service_fan_in": {
+            "title": "Service Fan In",
+            "type": "integer"
+          },
+          "write_share": {
+            "title": "Write Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "java_cross_module_fan_in",
+          "service_fan_in",
+          "controller_fan_in",
+          "inbound_total",
+          "inbound_share",
+          "data_writes",
+          "write_share",
+          "score"
+        ],
+        "title": "CriticalityInputs",
+        "type": "object"
+      },
+      "CutoverEvent": {
+        "properties": {
+          "hours": {
+            "title": "Hours",
+            "type": "number"
+          },
+          "month": {
+            "title": "Month",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "hours"
+        ],
+        "title": "CutoverEvent",
+        "type": "object"
+      },
+      "DbInstance": {
+        "properties": {
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "line": {
+            "title": "Line",
+            "type": "integer"
+          },
+          "match": {
+            "title": "Match",
+            "type": "string"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "jdbc",
+              "entity_engine"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "file",
+          "line",
+          "module",
+          "class_name",
+          "match"
+        ],
+        "title": "DbInstance",
+        "type": "object"
+      },
+      "Delta": {
+        "properties": {
+          "finish_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish Month"
+          },
+          "migration_cost_jpy": {
+            "title": "Migration Cost Jpy",
+            "type": "integer"
+          },
+          "npv_vs_retain_jpy": {
+            "title": "Npv Vs Retain Jpy",
+            "type": "integer"
+          },
+          "payback_quarter": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payback Quarter"
+          },
+          "peak_investment_jpy": {
+            "title": "Peak Investment Jpy",
+            "type": "integer"
+          },
+          "tco_jpy": {
+            "title": "Tco Jpy",
+            "type": "integer"
+          },
+          "tco_savings_vs_retain_jpy": {
+            "title": "Tco Savings Vs Retain Jpy",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "migration_cost_jpy",
+          "tco_jpy",
+          "tco_savings_vs_retain_jpy",
+          "npv_vs_retain_jpy",
+          "peak_investment_jpy",
+          "finish_month",
+          "payback_quarter"
+        ],
+        "title": "Delta",
+        "type": "object"
+      },
+      "Diff": {
+        "properties": {
+          "changed_picks": {
+            "items": {
+              "$ref": "#/components/schemas/PickChange"
+            },
+            "title": "Changed Picks",
+            "type": "array"
+          },
+          "delta": {
+            "$ref": "#/components/schemas/Delta"
+          }
+        },
+        "required": [
+          "changed_picks",
+          "delta"
+        ],
+        "title": "Diff",
+        "type": "object"
+      },
+      "Downgrade": {
+        "properties": {
+          "constrained": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Constrained",
+            "type": "string"
+          },
+          "migration_cost_saved_jpy": {
+            "title": "Migration Cost Saved Jpy",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "score_lost": {
+            "title": "Score Lost",
+            "type": "number"
+          },
+          "unconstrained": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Unconstrained",
+            "type": "string"
+          },
+          "weighted_score_lost": {
+            "title": "Weighted Score Lost",
+            "type": "number"
+          }
+        },
+        "required": [
+          "package_id",
+          "name",
+          "unconstrained",
+          "constrained",
+          "score_lost",
+          "weighted_score_lost",
+          "migration_cost_saved_jpy",
+          "reason"
+        ],
+        "title": "Downgrade",
+        "type": "object"
+      },
+      "Economics": {
+        "properties": {
+          "discount_rate": {
+            "title": "Discount Rate",
+            "type": "number"
+          },
+          "horizon_months": {
+            "title": "Horizon Months",
+            "type": "integer"
+          },
+          "kpis": {
+            "items": {
+              "$ref": "#/components/schemas/KpiTrajectory"
+            },
+            "title": "Kpis",
+            "type": "array"
+          },
+          "npv_vs_retain_jpy": {
+            "title": "Npv Vs Retain Jpy",
+            "type": "integer"
+          },
+          "payback_quarter": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payback Quarter"
+          },
+          "peak_investment_jpy": {
+            "title": "Peak Investment Jpy",
+            "type": "integer"
+          },
+          "peak_investment_quarter": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Investment Quarter"
+          },
+          "quarters": {
+            "items": {
+              "$ref": "#/components/schemas/QuarterPoint"
+            },
+            "title": "Quarters",
+            "type": "array"
+          },
+          "total_programme_cost_jpy": {
+            "title": "Total Programme Cost Jpy",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "horizon_months",
+          "discount_rate",
+          "quarters",
+          "total_programme_cost_jpy",
+          "payback_quarter",
+          "npv_vs_retain_jpy",
+          "peak_investment_jpy",
+          "peak_investment_quarter",
+          "kpis"
+        ],
+        "title": "Economics",
+        "type": "object"
+      },
+      "Edge": {
+        "properties": {
+          "fqn": {
+            "title": "Fqn",
+            "type": "string"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fqn",
+          "name",
+          "module"
+        ],
+        "title": "Edge",
+        "type": "object"
+      },
+      "EffortLine": {
+        "properties": {
+          "days": {
+            "title": "Days",
+            "type": "number"
+          },
+          "formula": {
+            "title": "Formula",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "days",
+          "formula"
+        ],
+        "title": "EffortLine",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "Finding": {
+        "description": "One concrete issue with evidence.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File"
+          },
+          "kind": {
+            "enum": [
+              "god_class",
+              "highly_coupled",
+              "module_without_tests",
+              "namespace_mix",
+              "module_cycle",
+              "outdated_dependency",
+              "broken_reference"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "metric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "kind",
+          "subject",
+          "detail"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "FindingsSummary": {
+        "properties": {
+          "broken_references": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Broken References",
+            "type": "array"
+          },
+          "by_kind": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "By Kind",
+            "type": "object"
+          },
+          "class_cycle_count": {
+            "title": "Class Cycle Count",
+            "type": "integer"
+          },
+          "dependencies": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Dependencies",
+            "type": "object"
+          },
+          "god_classes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "God Classes",
+            "type": "object"
+          },
+          "module_cycles": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Module Cycles",
+            "type": "array"
+          },
+          "parse_errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Parse Errors",
+            "type": "array"
+          }
+        },
+        "required": [
+          "by_kind",
+          "broken_references",
+          "module_cycles",
+          "class_cycle_count",
+          "god_classes",
+          "dependencies",
+          "parse_errors"
+        ],
+        "title": "FindingsSummary",
+        "type": "object"
+      },
+      "Flip": {
+        "description": "The smallest single-assumption change that flips this unit's recommendation.",
+        "properties": {
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "current_value": {
+            "title": "Current Value",
+            "type": "number"
+          },
+          "flip_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flip Value"
+          },
+          "new_strategy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "retain",
+                  "rehost",
+                  "replatform",
+                  "refactor",
+                  "rearchitect",
+                  "retire"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Strategy"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "parameter": {
+            "title": "Parameter",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parameter",
+          "current_value",
+          "flip_value",
+          "change_pct",
+          "new_strategy",
+          "note"
+        ],
+        "title": "Flip",
+        "type": "object"
+      },
+      "GraphEdge": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "data"
+        ],
+        "title": "GraphEdge",
+        "type": "object"
+      },
+      "GraphNode": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Position"
+          },
+          "type": {
+            "enum": [
+              "module",
+              "package",
+              "class"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "position",
+          "data"
+        ],
+        "title": "GraphNode",
+        "type": "object"
+      },
+      "GraphResponse": {
+        "properties": {
+          "bands": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Bands",
+            "type": "object"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "total_nodes": {
+            "title": "Total Nodes",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "level",
+          "nodes",
+          "edges",
+          "total_nodes",
+          "truncated",
+          "bands"
+        ],
+        "title": "GraphResponse",
+        "type": "object"
+      },
+      "Headline": {
+        "description": "A deterministic sentence built from the numbers in `numbers` (no LLM). The UI's executive summary.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "numbers": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Numbers",
+            "type": "object"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "text",
+          "numbers"
+        ],
+        "title": "Headline",
+        "type": "object"
+      },
+      "HealthComponent": {
+        "properties": {
+          "contribution_points": {
+            "title": "Contribution Points",
+            "type": "number"
+          },
+          "how": {
+            "title": "How",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "normalized": {
+            "title": "Normalized",
+            "type": "number"
+          },
+          "raw": {
+            "title": "Raw",
+            "type": "number"
+          },
+          "raw_unit": {
+            "title": "Raw Unit",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "raw",
+          "raw_unit",
+          "normalized",
+          "weight",
+          "contribution_points",
+          "how"
+        ],
+        "title": "HealthComponent",
+        "type": "object"
+      },
+      "Hotspot": {
+        "properties": {
+          "complexity": {
+            "title": "Complexity",
+            "type": "integer"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/HotspotComponent"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "fqn": {
+            "title": "Fqn",
+            "type": "string"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "size_tier": {
+            "title": "Size Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fqn",
+          "module",
+          "file",
+          "loc",
+          "complexity",
+          "size_tier",
+          "score",
+          "components",
+          "flags"
+        ],
+        "title": "Hotspot",
+        "type": "object"
+      },
+      "HotspotComponent": {
+        "properties": {
+          "contribution": {
+            "title": "Contribution",
+            "type": "number"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "weight",
+          "contribution"
+        ],
+        "title": "HotspotComponent",
+        "type": "object"
+      },
+      "Item": {
+        "properties": {
+          "cost_jpy": {
+            "title": "Cost Jpy",
+            "type": "integer"
+          },
+          "cutover_events": {
+            "items": {
+              "$ref": "#/components/schemas/CutoverEvent"
+            },
+            "title": "Cutover Events",
+            "type": "array"
+          },
+          "depends_on": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Depends On",
+            "type": "array"
+          },
+          "effort_days": {
+            "title": "Effort Days",
+            "type": "number"
+          },
+          "end_month": {
+            "title": "End Month",
+            "type": "integer"
+          },
+          "formula": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "foundation",
+              "package"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "lane": {
+            "title": "Lane",
+            "type": "integer"
+          },
+          "module": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module"
+          },
+          "monthly_spend_jpy": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Monthly Spend Jpy",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "package_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Id"
+          },
+          "people": {
+            "title": "People",
+            "type": "integer"
+          },
+          "reason_codes": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonCode"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "start_month": {
+            "title": "Start Month",
+            "type": "integer"
+          },
+          "strategy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "retain",
+                  "rehost",
+                  "replatform",
+                  "refactor",
+                  "rearchitect",
+                  "retire"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategy"
+          },
+          "team": {
+            "title": "Team",
+            "type": "string"
+          },
+          "wave": {
+            "title": "Wave",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "wave",
+          "kind",
+          "name",
+          "package_id",
+          "module",
+          "strategy",
+          "start_month",
+          "end_month",
+          "people",
+          "lane",
+          "team",
+          "effort_days",
+          "cost_jpy",
+          "monthly_spend_jpy",
+          "cutover_events",
+          "depends_on",
+          "reason_codes"
+        ],
+        "title": "Item",
+        "type": "object"
+      },
+      "KpiPoint": {
+        "properties": {
+          "month_end": {
+            "title": "Month End",
+            "type": "integer"
+          },
+          "quarter": {
+            "title": "Quarter",
+            "type": "integer"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "quarter",
+          "month_end",
+          "value"
+        ],
+        "title": "KpiPoint",
+        "type": "object"
+      },
+      "KpiReconciliation": {
+        "description": "The scenario's whole-ERP money KPIs next to the model, restated for the same (analysed) scope.",
+        "properties": {
+          "analysed_scope_share": {
+            "title": "Analysed Scope Share",
+            "type": "number"
+          },
+          "flagged": {
+            "title": "Flagged",
+            "type": "boolean"
+          },
+          "gap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap"
+          },
+          "gap_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Pct"
+          },
+          "kpi_current": {
+            "title": "Kpi Current",
+            "type": "number"
+          },
+          "kpi_current_in_analysed_scope": {
+            "title": "Kpi Current In Analysed Scope",
+            "type": "number"
+          },
+          "model_baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Baseline"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "objective",
+          "unit",
+          "scope",
+          "kpi_current",
+          "analysed_scope_share",
+          "kpi_current_in_analysed_scope",
+          "model_baseline",
+          "gap",
+          "gap_pct",
+          "flagged"
+        ],
+        "title": "KpiReconciliation",
+        "type": "object"
+      },
+      "KpiTrajectory": {
+        "properties": {
+          "current": {
+            "title": "Current",
+            "type": "number"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "modelled": {
+            "title": "Modelled",
+            "type": "boolean"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/KpiPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "target": {
+            "title": "Target",
+            "type": "number"
+          },
+          "target_reached_quarter": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Reached Quarter"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "objective",
+          "label",
+          "unit",
+          "modelled",
+          "current",
+          "target",
+          "note",
+          "points",
+          "target_reached_quarter"
+        ],
+        "title": "KpiTrajectory",
+        "type": "object"
+      },
+      "LegacyMarker": {
+        "properties": {
+          "family": {
+            "title": "Family",
+            "type": "string"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "import_": {
+            "title": "Import",
+            "type": "string"
+          },
+          "line": {
+            "title": "Line",
+            "type": "integer"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "namespace": {
+            "title": "Namespace",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "line",
+          "module",
+          "namespace",
+          "family",
+          "import_"
+        ],
+        "title": "LegacyMarker",
+        "type": "object"
+      },
+      "MaintenanceCalibration": {
+        "description": "Model estimate of a module's yearly maintenance next to the client's own figure, when the client gave one.",
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "client_reported_jpy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Reported Jpy"
+          },
+          "flagged": {
+            "title": "Flagged",
+            "type": "boolean"
+          },
+          "gap_jpy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Jpy"
+          },
+          "gap_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Pct"
+          },
+          "model_estimate_jpy": {
+            "title": "Model Estimate Jpy",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "model_estimate_jpy",
+          "client_reported_jpy",
+          "applied",
+          "gap_jpy",
+          "gap_pct",
+          "flagged"
+        ],
+        "title": "MaintenanceCalibration",
+        "type": "object"
+      },
+      "ModuleHealth": {
+        "properties": {
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/HealthComponent"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "top_drivers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Top Drivers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "score",
+          "components",
+          "top_drivers"
+        ],
+        "title": "ModuleHealth",
+        "type": "object"
+      },
+      "ModuleReport": {
+        "properties": {
+          "change_requests_per_year": {
+            "title": "Change Requests Per Year",
+            "type": "number"
+          },
+          "confidence": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "criticality": {
+            "$ref": "#/components/schemas/Criticality"
+          },
+          "health": {
+            "$ref": "#/components/schemas/ModuleHealth"
+          },
+          "java_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Java Share"
+          },
+          "kloc": {
+            "title": "Kloc",
+            "type": "number"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "maintenance_calibration": {
+            "$ref": "#/components/schemas/MaintenanceCalibration"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "rollups": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ModuleRollup"
+            },
+            "title": "Rollups",
+            "type": "object"
+          },
+          "work_package_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Work Package Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "module",
+          "loc",
+          "kloc",
+          "health",
+          "criticality",
+          "confidence",
+          "java_share",
+          "maintenance_calibration",
+          "change_requests_per_year",
+          "work_package_ids",
+          "rollups"
+        ],
+        "title": "ModuleReport",
+        "type": "object"
+      },
+      "ModuleRollup": {
+        "description": "A module's work packages under one profile; every figure is the sum over its packages.",
+        "properties": {
+          "duration_months": {
+            "title": "Duration Months",
+            "type": "number"
+          },
+          "effort_days": {
+            "title": "Effort Days",
+            "type": "number"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "migration_cost_jpy": {
+            "title": "Migration Cost Jpy",
+            "type": "integer"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "retain_tco_jpy": {
+            "title": "Retain Tco Jpy",
+            "type": "integer"
+          },
+          "strategy_by_work_package": {
+            "additionalProperties": {
+              "enum": [
+                "retain",
+                "rehost",
+                "replatform",
+                "refactor",
+                "rearchitect",
+                "retire"
+              ],
+              "type": "string"
+            },
+            "title": "Strategy By Work Package",
+            "type": "object"
+          },
+          "tco_jpy": {
+            "title": "Tco Jpy",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "profile",
+          "strategy_by_work_package",
+          "loc",
+          "effort_days",
+          "migration_cost_jpy",
+          "tco_jpy",
+          "retain_tco_jpy",
+          "duration_months"
+        ],
+        "title": "ModuleRollup",
+        "type": "object"
+      },
+      "ModuleRow": {
+        "properties": {
+          "class_count": {
+            "title": "Class Count",
+            "type": "integer"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "depends_on_modules": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Depends On Modules",
+            "type": "object"
+          },
+          "has_tests": {
+            "title": "Has Tests",
+            "type": "boolean"
+          },
+          "health": {
+            "title": "Health",
+            "type": "number"
+          },
+          "health_band": {
+            "title": "Health Band",
+            "type": "string"
+          },
+          "java_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Java Share"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "module_fan_in": {
+            "title": "Module Fan In",
+            "type": "integer"
+          },
+          "module_fan_out": {
+            "title": "Module Fan Out",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "namespace_mix": {
+            "title": "Namespace Mix",
+            "type": "boolean"
+          },
+          "package_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Package Ids",
+            "type": "array"
+          },
+          "top_drivers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Top Drivers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "loc",
+          "class_count",
+          "health",
+          "health_band",
+          "top_drivers",
+          "confidence",
+          "java_share",
+          "has_tests",
+          "namespace_mix",
+          "module_fan_in",
+          "module_fan_out",
+          "depends_on_modules",
+          "package_ids"
+        ],
+        "title": "ModuleRow",
+        "type": "object"
+      },
+      "ModulesPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ModuleRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "ModulesPage",
+        "type": "object"
+      },
+      "ObjectiveContribution": {
+        "properties": {
+          "contribution": {
+            "title": "Contribution",
+            "type": "number"
+          },
+          "counted": {
+            "default": true,
+            "title": "Counted",
+            "type": "boolean"
+          },
+          "effect": {
+            "title": "Effect",
+            "type": "number"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "objective",
+          "weight",
+          "effect",
+          "contribution"
+        ],
+        "title": "ObjectiveContribution",
+        "type": "object"
+      },
+      "Opportunity": {
+        "properties": {
+          "available_from_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From Month"
+          },
+          "blocked_by": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocked By",
+            "type": "array"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "prerequisite_packages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Prerequisite Packages",
+            "type": "array"
+          },
+          "requirements": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requirements",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "unlocked",
+              "not_unlocked",
+              "module_not_analysed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "description",
+          "status",
+          "requirements",
+          "prerequisite_packages",
+          "available_from_month",
+          "blocked_by"
+        ],
+        "title": "Opportunity",
+        "type": "object"
+      },
+      "OutdatedDependencies": {
+        "description": "Estate-level finding: outdated dependencies cannot be attributed to a module without its own build file.",
+        "properties": {
+          "checked": {
+            "title": "Checked",
+            "type": "integer"
+          },
+          "declared": {
+            "title": "Declared",
+            "type": "integer"
+          },
+          "outdated": {
+            "title": "Outdated",
+            "type": "integer"
+          },
+          "outdated_coordinates": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outdated Coordinates",
+            "type": "array"
+          },
+          "unchecked": {
+            "title": "Unchecked",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "declared",
+          "checked",
+          "unchecked",
+          "outdated",
+          "outdated_coordinates"
+        ],
+        "title": "OutdatedDependencies",
+        "type": "object"
+      },
+      "OverrideIn": {
+        "properties": {
+          "criticality": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Criticality",
+            "type": "integer"
+          },
+          "reason": {
+            "description": "A written reason is required (shown next to the value)",
+            "minLength": 10,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criticality",
+          "reason"
+        ],
+        "title": "OverrideIn",
+        "type": "object"
+      },
+      "Overtake": {
+        "properties": {
+          "breakeven_jpy_per_year": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breakeven Jpy Per Year"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "enum": [
+                  "higher",
+                  "lower"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "multiple_of_baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Multiple Of Baseline"
+          },
+          "strategy": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Strategy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy",
+          "breakeven_jpy_per_year",
+          "multiple_of_baseline",
+          "direction"
+        ],
+        "title": "Overtake",
+        "type": "object"
+      },
+      "PackageRow": {
+        "properties": {
+          "class_count": {
+            "title": "Class Count",
+            "type": "integer"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "cycle_modules": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cycle Modules",
+            "type": "array"
+          },
+          "health": {
+            "title": "Health",
+            "type": "number"
+          },
+          "health_band": {
+            "title": "Health Band",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "top_drivers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Top Drivers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "module",
+          "kind",
+          "name",
+          "class_count",
+          "loc",
+          "health",
+          "health_band",
+          "top_drivers",
+          "confidence",
+          "cycle_modules"
+        ],
+        "title": "PackageRow",
+        "type": "object"
+      },
+      "PackagesPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PackageRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "PackagesPage",
+        "type": "object"
+      },
+      "PickChange": {
+        "properties": {
+          "after": {
+            "title": "After",
+            "type": "string"
+          },
+          "before": {
+            "title": "Before",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "package_id",
+          "name",
+          "before",
+          "after"
+        ],
+        "title": "PickChange",
+        "type": "object"
+      },
+      "Portfolio": {
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/PortfolioChoice"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "strategy_mix": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Strategy Mix",
+            "type": "object"
+          },
+          "total_migration_cost_jpy": {
+            "title": "Total Migration Cost Jpy",
+            "type": "integer"
+          },
+          "total_score": {
+            "title": "Total Score",
+            "type": "number"
+          },
+          "total_unweighted_score": {
+            "title": "Total Unweighted Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total_score",
+          "total_unweighted_score",
+          "total_migration_cost_jpy",
+          "choices",
+          "strategy_mix"
+        ],
+        "title": "Portfolio",
+        "type": "object"
+      },
+      "PortfolioChoice": {
+        "properties": {
+          "migration_cost_jpy": {
+            "title": "Migration Cost Jpy",
+            "type": "integer"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "strategy": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Strategy",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "package_id",
+          "strategy",
+          "score",
+          "weight",
+          "migration_cost_jpy"
+        ],
+        "title": "PortfolioChoice",
+        "type": "object"
+      },
+      "PortfolioSelection": {
+        "properties": {
+          "budget_binding": {
+            "title": "Budget Binding",
+            "type": "boolean"
+          },
+          "budget_ceiling_jpy": {
+            "title": "Budget Ceiling Jpy",
+            "type": "integer"
+          },
+          "constrained": {
+            "$ref": "#/components/schemas/Portfolio"
+          },
+          "downgrades": {
+            "items": {
+              "$ref": "#/components/schemas/Downgrade"
+            },
+            "title": "Downgrades",
+            "type": "array"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "unconstrained": {
+            "$ref": "#/components/schemas/Portfolio"
+          },
+          "weights": {
+            "$ref": "#/components/schemas/Priorities"
+          }
+        },
+        "required": [
+          "profile",
+          "weights",
+          "budget_ceiling_jpy",
+          "method",
+          "objective",
+          "budget_binding",
+          "unconstrained",
+          "constrained",
+          "downgrades"
+        ],
+        "title": "PortfolioSelection",
+        "type": "object"
+      },
+      "Position": {
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "Position",
+        "type": "object"
+      },
+      "PresetRow": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "illustrative": {
+            "default": "ILLUSTRATIVE: not market data; calibrate against the client's own records",
+            "title": "Illustrative",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "weights": {
+            "$ref": "#/components/schemas/Priorities"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "weights"
+        ],
+        "title": "PresetRow",
+        "type": "object"
+      },
+      "Priorities": {
+        "description": "Client weights over the four criteria; they sum to 1.",
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "long_term_value": {
+            "title": "Long Term Value",
+            "type": "number"
+          },
+          "risk": {
+            "title": "Risk",
+            "type": "number"
+          },
+          "speed": {
+            "title": "Speed",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cost",
+          "risk",
+          "speed",
+          "long_term_value"
+        ],
+        "title": "Priorities",
+        "type": "object"
+      },
+      "ProfileTotals": {
+        "properties": {
+          "budget_ceiling_jpy": {
+            "title": "Budget Ceiling Jpy",
+            "type": "integer"
+          },
+          "close_calls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Close Calls",
+            "type": "array"
+          },
+          "npv_vs_retain_jpy": {
+            "title": "Npv Vs Retain Jpy",
+            "type": "integer"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "retain_tco_jpy": {
+            "title": "Retain Tco Jpy",
+            "type": "integer"
+          },
+          "strategy_by_work_package": {
+            "additionalProperties": {
+              "enum": [
+                "retain",
+                "rehost",
+                "replatform",
+                "refactor",
+                "rearchitect",
+                "retire"
+              ],
+              "type": "string"
+            },
+            "title": "Strategy By Work Package",
+            "type": "object"
+          },
+          "strategy_mix": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Strategy Mix",
+            "type": "object"
+          },
+          "tco_savings_vs_retain_jpy": {
+            "title": "Tco Savings Vs Retain Jpy",
+            "type": "integer"
+          },
+          "total_duration_months": {
+            "title": "Total Duration Months",
+            "type": "number"
+          },
+          "total_effort_days": {
+            "title": "Total Effort Days",
+            "type": "number"
+          },
+          "total_migration_cost_jpy": {
+            "title": "Total Migration Cost Jpy",
+            "type": "integer"
+          },
+          "total_tco_jpy": {
+            "title": "Total Tco Jpy",
+            "type": "integer"
+          },
+          "weights": {
+            "$ref": "#/components/schemas/Priorities"
+          },
+          "within_budget": {
+            "title": "Within Budget",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "profile",
+          "weights",
+          "strategy_by_work_package",
+          "strategy_mix",
+          "total_effort_days",
+          "total_migration_cost_jpy",
+          "total_tco_jpy",
+          "retain_tco_jpy",
+          "tco_savings_vs_retain_jpy",
+          "npv_vs_retain_jpy",
+          "total_duration_months",
+          "budget_ceiling_jpy",
+          "within_budget",
+          "close_calls"
+        ],
+        "title": "ProfileTotals",
+        "type": "object"
+      },
+      "QuarterPoint": {
+        "properties": {
+          "month_end": {
+            "title": "Month End",
+            "type": "integer"
+          },
+          "net_cumulative_jpy": {
+            "title": "Net Cumulative Jpy",
+            "type": "integer"
+          },
+          "programme_spend_jpy": {
+            "title": "Programme Spend Jpy",
+            "type": "integer"
+          },
+          "quarter": {
+            "title": "Quarter",
+            "type": "integer"
+          },
+          "retain_annual_run_rate_jpy": {
+            "title": "Retain Annual Run Rate Jpy",
+            "type": "integer"
+          },
+          "retain_cumulative_cost_jpy": {
+            "title": "Retain Cumulative Cost Jpy",
+            "type": "integer"
+          },
+          "roadmap_annual_run_rate_jpy": {
+            "title": "Roadmap Annual Run Rate Jpy",
+            "type": "integer"
+          },
+          "roadmap_cumulative_cost_jpy": {
+            "title": "Roadmap Cumulative Cost Jpy",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "quarter",
+          "month_end",
+          "programme_spend_jpy",
+          "roadmap_cumulative_cost_jpy",
+          "retain_cumulative_cost_jpy",
+          "net_cumulative_jpy",
+          "roadmap_annual_run_rate_jpy",
+          "retain_annual_run_rate_jpy"
+        ],
+        "title": "QuarterPoint",
+        "type": "object"
+      },
+      "ReasonCode": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ],
+        "title": "ReasonCode",
+        "type": "object"
+      },
+      "Recommendation": {
+        "properties": {
+          "assumptions": {
+            "additionalProperties": true,
+            "title": "Assumptions",
+            "type": "object"
+          },
+          "estate": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProfileTotals"
+            },
+            "title": "Estate",
+            "type": "object"
+          },
+          "estate_findings": {
+            "$ref": "#/components/schemas/OutdatedDependencies"
+          },
+          "hotspots": {
+            "items": {
+              "$ref": "#/components/schemas/Hotspot"
+            },
+            "title": "Hotspots",
+            "type": "array"
+          },
+          "kpi_reconciliation": {
+            "items": {
+              "$ref": "#/components/schemas/KpiReconciliation"
+            },
+            "title": "Kpi Reconciliation",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/RecommendationMeta"
+          },
+          "modules": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ModuleReport"
+            },
+            "title": "Modules",
+            "type": "object"
+          },
+          "scenario": {
+            "additionalProperties": true,
+            "title": "Scenario",
+            "type": "object"
+          },
+          "work_packages": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/WorkPackageReport"
+            },
+            "title": "Work Packages",
+            "type": "object"
+          }
+        },
+        "required": [
+          "meta",
+          "assumptions",
+          "scenario",
+          "modules",
+          "work_packages",
+          "hotspots",
+          "estate",
+          "estate_findings",
+          "kpi_reconciliation"
+        ],
+        "title": "Recommendation",
+        "type": "object"
+      },
+      "RecommendationMeta": {
+        "properties": {
+          "analysis_name": {
+            "title": "Analysis Name",
+            "type": "string"
+          },
+          "analyzer": {
+            "title": "Analyzer",
+            "type": "string"
+          },
+          "engine": {
+            "default": "rearch-engine 0.2.0",
+            "title": "Engine",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "scenario_client": {
+            "title": "Scenario Client",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "3.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "selected_profile": {
+            "title": "Selected Profile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "analysis_name",
+          "analyzer",
+          "selected_profile",
+          "scenario_client",
+          "notes"
+        ],
+        "title": "RecommendationMeta",
+        "type": "object"
+      },
+      "RecommendationResponse": {
+        "properties": {
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunInfo"
+          }
+        },
+        "required": [
+          "run",
+          "recommendation"
+        ],
+        "title": "RecommendationResponse",
+        "type": "object"
+      },
+      "Roadmap": {
+        "properties": {
+          "assumptions": {
+            "additionalProperties": true,
+            "title": "Assumptions",
+            "type": "object"
+          },
+          "economics": {
+            "$ref": "#/components/schemas/Economics"
+          },
+          "headlines": {
+            "items": {
+              "$ref": "#/components/schemas/Headline"
+            },
+            "title": "Headlines",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/RoadmapMeta"
+          },
+          "portfolio": {
+            "$ref": "#/components/schemas/PortfolioSelection"
+          },
+          "retained_packages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Retained Packages",
+            "type": "array"
+          },
+          "unlocks": {
+            "items": {
+              "$ref": "#/components/schemas/Opportunity"
+            },
+            "title": "Unlocks",
+            "type": "array"
+          },
+          "unscheduled": {
+            "items": {
+              "$ref": "#/components/schemas/Unscheduled"
+            },
+            "title": "Unscheduled",
+            "type": "array"
+          },
+          "waves": {
+            "items": {
+              "$ref": "#/components/schemas/Wave"
+            },
+            "title": "Waves",
+            "type": "array"
+          }
+        },
+        "required": [
+          "meta",
+          "portfolio",
+          "waves",
+          "items",
+          "unscheduled",
+          "retained_packages",
+          "unlocks",
+          "economics",
+          "headlines",
+          "assumptions"
+        ],
+        "title": "Roadmap",
+        "type": "object"
+      },
+      "RoadmapMeta": {
+        "properties": {
+          "analysis_name": {
+            "title": "Analysis Name",
+            "type": "string"
+          },
+          "capacity_people": {
+            "title": "Capacity People",
+            "type": "integer"
+          },
+          "finish_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish Month"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "scenario_client": {
+            "title": "Scenario Client",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "teams": {
+            "title": "Teams",
+            "type": "integer"
+          },
+          "yearly_budget_cap_jpy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yearly Budget Cap Jpy"
+          }
+        },
+        "required": [
+          "analysis_name",
+          "profile",
+          "scenario_client",
+          "capacity_people",
+          "teams",
+          "yearly_budget_cap_jpy",
+          "finish_month",
+          "notes"
+        ],
+        "title": "RoadmapMeta",
+        "type": "object"
+      },
+      "RoadmapResponse": {
+        "properties": {
+          "roadmap": {
+            "$ref": "#/components/schemas/Roadmap"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunInfo"
+          }
+        },
+        "required": [
+          "run",
+          "roadmap"
+        ],
+        "title": "RoadmapResponse",
+        "type": "object"
+      },
+      "RunInfo": {
+        "properties": {
+          "analysis_id": {
+            "title": "Analysis Id",
+            "type": "string"
+          },
+          "cache_hit": {
+            "title": "Cache Hit",
+            "type": "boolean"
+          },
+          "input_hash": {
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "number_id_prefix": {
+            "title": "Number Id Prefix",
+            "type": "string"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "recompute_ms": {
+            "title": "Recompute Ms",
+            "type": "number"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scenario_version": {
+            "title": "Scenario Version",
+            "type": "integer"
+          },
+          "sensitivity": {
+            "enum": [
+              "ready",
+              "pending"
+            ],
+            "title": "Sensitivity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "analysis_id",
+          "scenario_version",
+          "input_hash",
+          "cache_hit",
+          "recompute_ms",
+          "sensitivity",
+          "profile",
+          "number_id_prefix"
+        ],
+        "title": "RunInfo",
+        "type": "object"
+      },
+      "ScenarioEdit": {
+        "description": "A partial edit. Omitted fields keep their value; map fields merge by key (null removes a key).",
+        "properties": {
+          "analysed_scope_share": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysed Scope Share"
+          },
+          "assumptions": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assumptions"
+          },
+          "budget_ceiling_jpy": {
+            "anyOf": [
+              {
+                "maximum": 1000000000000.0,
+                "minimum": 1000000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Ceiling Jpy"
+          },
+          "change_requests_per_year": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Requests Per Year"
+          },
+          "client_reported_maintenance_jpy": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Reported Maintenance Jpy"
+          },
+          "criticality_overrides": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OverrideIn"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criticality Overrides"
+          },
+          "max_cutover_downtime_hours": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Cutover Downtime Hours"
+          },
+          "objective_weights": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective Weights"
+          },
+          "planning_horizon_years": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planning Horizon Years"
+          },
+          "priorities": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Priorities"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "what-if only: the profile whose result and diff are returned",
+            "title": "Profile"
+          }
+        },
+        "title": "ScenarioEdit",
+        "type": "object"
+      },
+      "ScenarioPutResponse": {
+        "properties": {
+          "changed_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Fields",
+            "type": "array"
+          },
+          "created": {
+            "title": "Created",
+            "type": "boolean"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunInfo"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/ScenarioResponse"
+          }
+        },
+        "required": [
+          "created",
+          "changed_fields",
+          "scenario",
+          "run"
+        ],
+        "title": "ScenarioPutResponse",
+        "type": "object"
+      },
+      "ScenarioResponse": {
+        "properties": {
+          "analysis_id": {
+            "title": "Analysis Id",
+            "type": "string"
+          },
+          "illustrative": {
+            "default": "ILLUSTRATIVE: not market data; calibrate against the client's own records",
+            "title": "Illustrative",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ScenarioState"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/VersionRow"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "analysis_id",
+          "version",
+          "versions",
+          "state"
+        ],
+        "title": "ScenarioResponse",
+        "type": "object"
+      },
+      "ScenarioState": {
+        "description": "A complete, resolved scenario version.",
+        "properties": {
+          "analysed_scope_share": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Analysed Scope Share",
+            "type": "number"
+          },
+          "assumptions": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Assumptions",
+            "type": "object"
+          },
+          "budget_ceiling_jpy": {
+            "maximum": 1000000000000.0,
+            "minimum": 1000000.0,
+            "title": "Budget Ceiling Jpy",
+            "type": "integer"
+          },
+          "change_requests_per_year": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Change Requests Per Year",
+            "type": "object"
+          },
+          "client_reported_maintenance_jpy": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Client Reported Maintenance Jpy",
+            "type": "object"
+          },
+          "criticality_overrides": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OverrideIn"
+            },
+            "title": "Criticality Overrides",
+            "type": "object"
+          },
+          "max_cutover_downtime_hours": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Max Cutover Downtime Hours",
+            "type": "object"
+          },
+          "objective_weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Objective Weights",
+            "type": "object"
+          },
+          "planning_horizon_years": {
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Planning Horizon Years",
+            "type": "integer"
+          },
+          "priorities": {
+            "$ref": "#/components/schemas/Priorities"
+          }
+        },
+        "required": [
+          "priorities",
+          "objective_weights",
+          "budget_ceiling_jpy",
+          "planning_horizon_years",
+          "max_cutover_downtime_hours",
+          "criticality_overrides",
+          "client_reported_maintenance_jpy",
+          "change_requests_per_year",
+          "analysed_scope_share",
+          "assumptions"
+        ],
+        "title": "ScenarioState",
+        "type": "object"
+      },
+      "ScoredStrategy": {
+        "properties": {
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionScore"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "strategy": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Strategy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy",
+          "score",
+          "criteria"
+        ],
+        "title": "ScoredStrategy",
+        "type": "object"
+      },
+      "SensitivityResponse": {
+        "properties": {
+          "packages": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Packages",
+            "type": "object"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunInfo"
+          }
+        },
+        "required": [
+          "run",
+          "packages"
+        ],
+        "title": "SensitivityResponse",
+        "type": "object"
+      },
+      "ServiceMapping": {
+        "properties": {
+          "analyzed": {
+            "title": "Analyzed",
+            "type": "boolean"
+          },
+          "class_found": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Found"
+          },
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "implementation": {
+            "title": "Implementation",
+            "type": "string"
+          },
+          "line": {
+            "default": 0,
+            "title": "Line",
+            "type": "integer"
+          },
+          "method_found": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method Found"
+          },
+          "reference_status": {
+            "default": "not_checked",
+            "enum": [
+              "ok",
+              "method_missing",
+              "class_missing",
+              "out_of_scope",
+              "not_checked"
+            ],
+            "title": "Reference Status",
+            "type": "string"
+          },
+          "service": {
+            "title": "Service",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "engine",
+          "implementation",
+          "analyzed",
+          "file"
+        ],
+        "title": "ServiceMapping",
+        "type": "object"
+      },
+      "StrategyChoice": {
+        "properties": {
+          "chosen": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Chosen",
+            "type": "string"
+          },
+          "close_call": {
+            "title": "Close Call",
+            "type": "boolean"
+          },
+          "margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "ranking": {
+            "items": {
+              "$ref": "#/components/schemas/ScoredStrategy"
+            },
+            "title": "Ranking",
+            "type": "array"
+          },
+          "runner_up": {
+            "anyOf": [
+              {
+                "enum": [
+                  "retain",
+                  "rehost",
+                  "replatform",
+                  "refactor",
+                  "rearchitect",
+                  "retire"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runner Up"
+          },
+          "runner_up_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runner Up Score"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "weights": {
+            "$ref": "#/components/schemas/Priorities"
+          }
+        },
+        "required": [
+          "profile",
+          "weights",
+          "chosen",
+          "score",
+          "runner_up",
+          "runner_up_score",
+          "margin",
+          "close_call",
+          "ranking"
+        ],
+        "title": "StrategyChoice",
+        "type": "object"
+      },
+      "StrategyOption": {
+        "properties": {
+          "base_risk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Risk"
+          },
+          "cutover_approach": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutover Approach"
+          },
+          "cutover_events": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutover Events"
+          },
+          "cutover_hours_per_event": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutover Hours Per Event"
+          },
+          "cutover_total_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutover Total Hours"
+          },
+          "duration_months": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Months"
+          },
+          "effort_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effort Days"
+          },
+          "effort_lines": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EffortLine"
+            },
+            "title": "Effort Lines",
+            "type": "array"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "feasible": {
+            "default": true,
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "ineligible_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ineligible Reason"
+          },
+          "infeasible_reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Infeasible Reasons",
+            "type": "array"
+          },
+          "migration_cost_jpy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Migration Cost Jpy"
+          },
+          "multipliers": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "default": {},
+            "title": "Multipliers",
+            "type": "object"
+          },
+          "risk_components": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Component"
+            },
+            "title": "Risk Components",
+            "type": "array"
+          },
+          "risk_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Score"
+          },
+          "strategy": {
+            "enum": [
+              "retain",
+              "rehost",
+              "replatform",
+              "refactor",
+              "rearchitect",
+              "retire"
+            ],
+            "title": "Strategy",
+            "type": "string"
+          },
+          "tco": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Tco"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "team_size": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Size"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValueBreakdown"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "strategy",
+          "eligible"
+        ],
+        "title": "StrategyOption",
+        "type": "object"
+      },
+      "Summary": {
+        "properties": {
+          "budget_binding": {
+            "title": "Budget Binding",
+            "type": "boolean"
+          },
+          "finish_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish Month"
+          },
+          "headlines": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Headlines",
+            "type": "array"
+          },
+          "migration_cost_jpy": {
+            "title": "Migration Cost Jpy",
+            "type": "integer"
+          },
+          "npv_vs_retain_jpy": {
+            "title": "Npv Vs Retain Jpy",
+            "type": "integer"
+          },
+          "payback_quarter": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payback Quarter"
+          },
+          "peak_investment_jpy": {
+            "title": "Peak Investment Jpy",
+            "type": "integer"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "retain_tco_jpy": {
+            "title": "Retain Tco Jpy",
+            "type": "integer"
+          },
+          "strategy_by_package": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Strategy By Package",
+            "type": "object"
+          },
+          "strategy_mix": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Strategy Mix",
+            "type": "object"
+          },
+          "tco_jpy": {
+            "title": "Tco Jpy",
+            "type": "integer"
+          },
+          "tco_savings_vs_retain_jpy": {
+            "title": "Tco Savings Vs Retain Jpy",
+            "type": "integer"
+          },
+          "within_budget": {
+            "title": "Within Budget",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "profile",
+          "strategy_by_package",
+          "strategy_mix",
+          "migration_cost_jpy",
+          "tco_jpy",
+          "retain_tco_jpy",
+          "tco_savings_vs_retain_jpy",
+          "npv_vs_retain_jpy",
+          "payback_quarter",
+          "peak_investment_jpy",
+          "finish_month",
+          "within_budget",
+          "budget_binding",
+          "headlines"
+        ],
+        "title": "Summary",
+        "type": "object"
+      },
+      "Tco": {
+        "description": "tco = migration + sum over years (run + maintenance + change); all whole yen, so it reconstructs exactly.",
+        "properties": {
+          "baseline_change_jpy_per_year": {
+            "title": "Baseline Change Jpy Per Year",
+            "type": "number"
+          },
+          "baseline_maintenance_jpy_per_year": {
+            "title": "Baseline Maintenance Jpy Per Year",
+            "type": "number"
+          },
+          "baseline_run_jpy_per_year": {
+            "title": "Baseline Run Jpy Per Year",
+            "type": "number"
+          },
+          "change_savings_vs_retain_jpy": {
+            "title": "Change Savings Vs Retain Jpy",
+            "type": "integer"
+          },
+          "change_total_jpy": {
+            "title": "Change Total Jpy",
+            "type": "integer"
+          },
+          "discount_rate": {
+            "title": "Discount Rate",
+            "type": "number"
+          },
+          "horizon_years": {
+            "title": "Horizon Years",
+            "type": "integer"
+          },
+          "maintenance_total_jpy": {
+            "title": "Maintenance Total Jpy",
+            "type": "integer"
+          },
+          "migration_total_jpy": {
+            "title": "Migration Total Jpy",
+            "type": "integer"
+          },
+          "npv_cost_jpy": {
+            "title": "Npv Cost Jpy",
+            "type": "integer"
+          },
+          "npv_vs_retain_jpy": {
+            "title": "Npv Vs Retain Jpy",
+            "type": "integer"
+          },
+          "payback_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payback Year"
+          },
+          "run_total_jpy": {
+            "title": "Run Total Jpy",
+            "type": "integer"
+          },
+          "savings_vs_retain_jpy": {
+            "title": "Savings Vs Retain Jpy",
+            "type": "integer"
+          },
+          "steady_state_change_jpy": {
+            "title": "Steady State Change Jpy",
+            "type": "integer"
+          },
+          "steady_state_maintenance_jpy": {
+            "title": "Steady State Maintenance Jpy",
+            "type": "integer"
+          },
+          "steady_state_run_jpy": {
+            "title": "Steady State Run Jpy",
+            "type": "integer"
+          },
+          "tco_jpy": {
+            "title": "Tco Jpy",
+            "type": "integer"
+          },
+          "yearly": {
+            "items": {
+              "$ref": "#/components/schemas/CashFlowYear"
+            },
+            "title": "Yearly",
+            "type": "array"
+          }
+        },
+        "required": [
+          "horizon_years",
+          "discount_rate",
+          "baseline_maintenance_jpy_per_year",
+          "baseline_run_jpy_per_year",
+          "baseline_change_jpy_per_year",
+          "steady_state_maintenance_jpy",
+          "steady_state_run_jpy",
+          "steady_state_change_jpy",
+          "yearly",
+          "migration_total_jpy",
+          "run_total_jpy",
+          "maintenance_total_jpy",
+          "change_total_jpy",
+          "change_savings_vs_retain_jpy",
+          "tco_jpy",
+          "npv_cost_jpy",
+          "savings_vs_retain_jpy",
+          "npv_vs_retain_jpy",
+          "payback_year"
+        ],
+        "title": "Tco",
+        "type": "object"
+      },
+      "Unscheduled": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason_codes": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonCode"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "reason_codes"
+        ],
+        "title": "Unscheduled",
+        "type": "object"
+      },
+      "ValueBreakdown": {
+        "description": "value = min(100, debt_reduction x burden x criticality_weight x objective_fit), rounded to 4 decimals.",
+        "properties": {
+          "burden": {
+            "title": "Burden",
+            "type": "number"
+          },
+          "criticality": {
+            "title": "Criticality",
+            "type": "integer"
+          },
+          "criticality_weight": {
+            "title": "Criticality Weight",
+            "type": "number"
+          },
+          "debt_reduction": {
+            "title": "Debt Reduction",
+            "type": "number"
+          },
+          "objective_fit": {
+            "title": "Objective Fit",
+            "type": "number"
+          },
+          "objectives": {
+            "items": {
+              "$ref": "#/components/schemas/ObjectiveContribution"
+            },
+            "title": "Objectives",
+            "type": "array"
+          },
+          "uncapped": {
+            "title": "Uncapped",
+            "type": "number"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "debt_reduction",
+          "burden",
+          "criticality",
+          "criticality_weight",
+          "objective_fit",
+          "objectives",
+          "uncapped",
+          "value"
+        ],
+        "title": "ValueBreakdown",
+        "type": "object"
+      },
+      "VersionRow": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "created_at",
+          "note"
+        ],
+        "title": "VersionRow",
+        "type": "object"
+      },
+      "Wave": {
+        "properties": {
+          "cost_jpy": {
+            "title": "Cost Jpy",
+            "type": "integer"
+          },
+          "end_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "item_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Item Ids",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "peak_people": {
+            "title": "Peak People",
+            "type": "integer"
+          },
+          "start_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
+          }
+        },
+        "required": [
+          "number",
+          "name",
+          "start_month",
+          "end_month",
+          "item_ids",
+          "cost_jpy",
+          "peak_people"
+        ],
+        "title": "Wave",
+        "type": "object"
+      },
+      "WhatIfResponse": {
+        "properties": {
+          "cache_hit": {
+            "title": "Cache Hit",
+            "type": "boolean"
+          },
+          "current": {
+            "$ref": "#/components/schemas/Summary"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/Diff"
+          },
+          "persisted": {
+            "default": false,
+            "title": "Persisted",
+            "type": "boolean"
+          },
+          "profile": {
+            "title": "Profile",
+            "type": "string"
+          },
+          "recompute_ms": {
+            "title": "Recompute Ms",
+            "type": "number"
+          },
+          "scenario_changes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scenario Changes",
+            "type": "array"
+          },
+          "whatif": {
+            "$ref": "#/components/schemas/Summary"
+          }
+        },
+        "required": [
+          "profile",
+          "scenario_changes",
+          "current",
+          "whatif",
+          "diff",
+          "cache_hit",
+          "recompute_ms"
+        ],
+        "title": "WhatIfResponse",
+        "type": "object"
+      },
+      "WorkPackageReport": {
+        "properties": {
+          "breakeven": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Breakeven"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "change_requests_per_year": {
+            "title": "Change Requests Per Year",
+            "type": "number"
+          },
+          "choices": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StrategyChoice"
+            },
+            "title": "Choices",
+            "type": "object"
+          },
+          "classes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Classes",
+            "type": "array"
+          },
+          "confidence": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "cycle_modules": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cycle Modules",
+            "type": "array"
+          },
+          "health": {
+            "$ref": "#/components/schemas/ModuleHealth"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "inbound_references": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Inbound References",
+            "type": "object"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "kloc": {
+            "title": "Kloc",
+            "type": "number"
+          },
+          "loc": {
+            "title": "Loc",
+            "type": "integer"
+          },
+          "maintenance_baseline_jpy_per_year": {
+            "title": "Maintenance Baseline Jpy Per Year",
+            "type": "number"
+          },
+          "module": {
+            "title": "Module",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/StrategyOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "sensitivity": {
+            "items": {
+              "$ref": "#/components/schemas/Flip"
+            },
+            "title": "Sensitivity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "module",
+          "kind",
+          "name",
+          "classes",
+          "cycle_modules",
+          "loc",
+          "kloc",
+          "health",
+          "confidence",
+          "inbound_references",
+          "options",
+          "choices",
+          "sensitivity",
+          "breakeven",
+          "maintenance_baseline_jpy_per_year",
+          "change_requests_per_year"
+        ],
+        "title": "WorkPackageReport",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "ReArch API: deterministic legacy-code analysis, a modernization recommendation and a roadmap.\nEvery figure is computed by Python from facts; assumptions are ILLUSTRATIVE and the client scenario is fictional.\nAny number can be explained with `GET /explain/{number_id}`.",
+    "title": "ReArch API",
+    "version": "0.5.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/analyses": {
+      "get": {
+        "operationId": "list_analyses_analyses_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnalysisListItem"
+                  },
+                  "title": "Response List Analyses Analyses Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Analyses",
+        "tags": [
+          "analyses"
+        ]
+      },
+      "post": {
+        "operationId": "create_analysis_analyses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create Analysis",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}": {
+      "get": {
+        "operationId": "analysis_summary_analyses__analysis_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Analysis Summary",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/classes": {
+      "get": {
+        "operationId": "classes_analyses__analysis_id__classes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "module",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Module"
+            }
+          },
+          {
+            "in": "query",
+            "name": "package",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Package"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none",
+                    "large",
+                    "extreme"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "used",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Used"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_loc",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Min Loc",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "schema": {
+              "default": "hotspot",
+              "title": "Sort By",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "descending",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Descending",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassesPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Classes",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/classes/{name}": {
+      "get": {
+        "operationId": "class_detail_analyses__analysis_id__classes__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Class Detail",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/graph": {
+      "get": {
+        "operationId": "graph_analyses__analysis_id__graph_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "level",
+            "required": false,
+            "schema": {
+              "default": "module",
+              "enum": [
+                "module",
+                "package",
+                "class"
+              ],
+              "title": "Level",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 80,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "module",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Module"
+            }
+          },
+          {
+            "in": "query",
+            "name": "package",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Package"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Graph",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/modules": {
+      "get": {
+        "operationId": "modules_analyses__analysis_id__modules_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_loc",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Min Loc",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "confidence",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Confidence"
+            }
+          },
+          {
+            "in": "query",
+            "name": "has_tests",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Has Tests"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "schema": {
+              "default": "loc",
+              "title": "Sort By",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "descending",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Descending",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModulesPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Modules",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/packages": {
+      "get": {
+        "operationId": "packages_analyses__analysis_id__packages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "module",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Module"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "cycle",
+                    "god_class_cluster",
+                    "remainder"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "schema": {
+              "default": "loc",
+              "title": "Sort By",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "descending",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Descending",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackagesPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Packages",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/recommendation": {
+      "get": {
+        "operationId": "get_recommendation_analyses__analysis_id__recommendation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "a preset or client_scenario",
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "a preset or client_scenario",
+              "title": "Profile"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Recommendation",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/roadmap": {
+      "get": {
+        "operationId": "get_roadmap_analyses__analysis_id__roadmap_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Profile"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadmapResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Roadmap",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/scenario": {
+      "get": {
+        "operationId": "get_scenario_analyses__analysis_id__scenario_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Scenario",
+        "tags": [
+          "scenario and results"
+        ]
+      },
+      "put": {
+        "description": "Merge the edit into the current scenario. If anything changed, a new version is created and the results are recomputed\nsynchronously (no re-analysis, tens of milliseconds); the slow sensitivity search then runs in the background.",
+        "operationId": "put_scenario_analyses__analysis_id__scenario_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioPutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Put Scenario",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/sensitivity": {
+      "get": {
+        "description": "Flip points and breakevens per package (the run's selected profile). Computed on first request if the background job has not.",
+        "operationId": "get_sensitivity_analyses__analysis_id__sensitivity_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensitivityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Sensitivity",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/status": {
+      "get": {
+        "operationId": "analysis_status_analyses__analysis_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Analysis Status",
+        "tags": [
+          "analyses"
+        ]
+      }
+    },
+    "/analyses/{analysis_id}/whatif": {
+      "post": {
+        "description": "Compute a partial scenario without persisting anything, and diff it against the current scenario.",
+        "operationId": "whatif_analyses__analysis_id__whatif_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatIfResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Whatif",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    },
+    "/assumptions": {
+      "get": {
+        "operationId": "assumptions_assumptions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "analysis_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Analysis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssumptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Assumptions",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    },
+    "/explain/{number_id}": {
+      "get": {
+        "description": "The formula, inputs, assumptions and contribution behind any number in a run or analysis response.\nA number id is `<run id>:rec:<json pointer>`, `<run id>:roadmap.<profile>:<json pointer>` or `<analysis id>:analysis:<json pointer>`;\nthe responses carry `number_id_prefix` so the id of any number is prefix + the pointer of the number inside the document.",
+        "operationId": "get_explain_explain__number_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "number_id",
+            "required": true,
+            "schema": {
+              "title": "Number Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Explain Explain  Number Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Explain",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/presets": {
+      "get": {
+        "operationId": "presets_presets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PresetRow"
+                  },
+                  "title": "Response Presets Presets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Presets",
+        "tags": [
+          "scenario and results"
+        ]
+      }
+    }
+  }
+}

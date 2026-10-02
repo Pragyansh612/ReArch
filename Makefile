@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 REPO ?=
 
-.PHONY: setup dev test lint analyze crosscheck recommend roadmap
+.PHONY: setup dev test lint analyze crosscheck recommend roadmap seed demo-data openapi types serve
 
 setup:
 	python3 -m venv .venv
@@ -45,3 +45,22 @@ recommend:
 roadmap:
 	@test -n "$(NAME)" || (echo "usage: make roadmap NAME=<analysis name, e.g. ofbiz> [PROFILE=...]"; exit 1)
 	$(PY) -m engine.roadmap out/$(NAME).json $(if $(PROFILE),--profile "$(PROFILE)") $(if $(SCENARIO),--scenario $(SCENARIO))
+
+# Load the committed demo analyses (data/demo/*.json.gz) into the API database
+seed:
+	$(PY) -m api.app.seed
+
+# Refresh the committed demo data from out/ (run `make analyze` for ofbiz and the fixture first)
+demo-data:
+	$(PY) scripts/make_demo_data.py
+
+# Export the API contract and generate the TypeScript types the web app uses (and only these)
+openapi:
+	$(PY) scripts/export_openapi.py
+
+types: openapi
+	cd web && npx openapi-typescript ../docs/openapi.json -o src/lib/api-types.ts
+
+# Run the API alone (DEMO_MODE=1 disables POST /analyses and serves the preloaded analyses)
+serve:
+	$(PY) -m uvicorn api.app.main:app --port 8000

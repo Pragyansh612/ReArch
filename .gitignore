@@ -11,3 +11,7 @@ targets/
 *.db
 .env
 .tools/
+
+# runtime data (database, stored analyses, clones); only the committed demo analyses are tracked
+data/*
+!data/demo/

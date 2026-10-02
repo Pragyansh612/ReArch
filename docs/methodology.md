@@ -336,8 +336,17 @@ Input: the recommendation (all profiles, all options), the analysis (class edges
 randomness, every iteration order is sorted, ties are broken by fixed rules (tested by running the pipeline twice).
 
 ### Budget-constrained portfolio
-- **What it decides:** one selectable (eligible and feasible) option per package, maximising the total priority-weighted score
-  (the profile's score of each chosen option, summed), subject to total migration cost ≤ the budget ceiling.
+- **What it decides:** one selectable (eligible and feasible) option per package, maximising the **value-at-stake-weighted** sum of
+  the packages' priority-weighted scores, subject to total migration cost ≤ the budget ceiling. A package's weight is its five-year
+  do-nothing (retain) TCO, i.e. its share of the estate's do-nothing cost. Objective = Σ over packages of
+  (retain TCO ÷ estate retain TCO) × (the chosen option's 0–100 score); the reported `total_score` is that weighted mean.
+- **Why weighted (Phase 4 review fix):** the first version summed the 0–100 scores directly, so a 1 KLOC package counted as much as a
+  13 KLOC one. That is a flaw in the objective's design, not a tuning choice: the score of a package says how good the best option is
+  *for that package*, and the money and risk riding on a decision grow with what the package costs the client to leave alone.
+  Weighting by do-nothing cost uses a quantity the model already computes and that needs no new assumption: a decision on a package
+  that accounts for 20% of the estate's future cost counts for 20% of the objective. Two otherwise identical packages of different size
+  get weights in exactly the ratio of their do-nothing costs (tested). The weights are whole yen and scores integers, so the objective is
+  an exact integer and the optimiser stays exact; the unconstrained portfolio (each package's own best) is unaffected by the weighting.
 - **Method:** exact dynamic programming over the Pareto frontier of (cost, score) states: after each package, a state is dropped only
   if another is at least as cheap and at least as good. Scores are integers (four decimals × 10,000), so there is no floating-point
   noise. Ties go to the higher score, then the lower cost, then the lexicographically smallest strategy order. The tests compare it
@@ -345,9 +354,10 @@ randomness, every iteration order is sorted, ties are broken by fixed rules (tes
 - **Output:** the unconstrained portfolio (each package's own best), the constrained one, and exactly which packages were
   downgraded because of the budget (from, to, score lost, migration cost saved). `budget_binding` says whether the unconstrained
   portfolio exceeded the budget; if not, the two portfolios are identical.
-- **Limit (package-size-blind):** every package's score counts equally, whatever its size. The optimiser therefore prefers
-  many small upgrades to one large one; on OFBiz that drops the large shopping-cart cluster first (see progress.md). A weighting by
-  size or by value at stake would change this; it is a modelling decision for the client, not applied here.
+- **Effect on OFBiz:** under `long_term_value` the budget now goes to the shopping-cart cycle (20% of the estate's do-nothing cost) first
+  and the small packages are downgraded, instead of the reverse (see progress.md).
+- **Limit:** the weight is today's do-nothing cost, which depends on the maintenance baseline (breakeven covers that); and a package
+  with large cost is not necessarily one with large benefit from change.
 
 ### Sequencing into waves
 - **Jobs:** every package whose chosen strategy is not retain is a job (effort, migration cost, duration, people from its chosen option).
@@ -374,6 +384,17 @@ randomness, every iteration order is sorted, ties are broken by fixed rules (tes
   with a code, never dropped silently.
 - **Waves:** Wave 0 = foundations; wave 1 + dependency depth for package groups; the final wave, "What modernization unlocks", has no work.
 
+### Headline findings (no LLM)
+`headlines` is a list of deterministic sentences built from the numbers, each carrying the numbers it states (`numbers`), so the UI's
+executive summary and, later, the LLM's input contain only facts the engine produced. They are: the recommended portfolio and its cost
+against the budget; the NPV against doing nothing, the payback quarter and the peak investment; the package with the largest value at
+stake and what happens to it; the most expensive option considered and rejected, with the reason (a constraint it breaks, the budget,
+or the score gap to the chosen option); the assumption most worth validating with the client; the model-versus-client maintenance gap; the unlocked
+opportunities; the broken references found; and the outdated dependencies. The "assumption most worth validating" is chosen
+deterministically: among packages with a maintenance-spend breakeven within ten times the baseline, the one with the largest share of the
+estate's do-nothing cost. Breakevens are measured against each package's own best option under the profile (before the budget limit)
+and exist only for the run's selected profile, so the sentence says so when they have not been computed.
+
 ### What modernization unlocks (no LLM)
 A deterministic config mapping from modernized packages to data and AI opportunities. An opportunity lists requirements such as
 "order packages holding at least 60% of the module's code reach refactor or beyond"; when all hold it is `unlocked`, its
@@ -398,3 +419,21 @@ whole-ERP KPI minus the model's saving in the analysed scope; change lead time a
 Every item carries: wave, package, kind, strategy, start and end month (1-based, inclusive), people, a display lane and team label
 (lanes are rows, capacity is people), effort, cost, the monthly spend, the cutover events (month and hours each), dependencies and
 reason codes. Tests check that lanes never overlap, monthly spend sums to the cost, and capacity is never exceeded.
+
+---
+
+## Phase 5 — The API computes nothing new
+
+`api/` exposes the analyzer, the engine and the roadmap over HTTP; every number still comes from those packages. What it adds:
+- **Versioned scenarios and a hash cache.** A scenario edit creates a new version; the recommendation for (analysis, effective inputs) is cached
+  under a hash of the analysis content, the client scenario, the effective engine and roadmap configuration and the engine version.
+  Identical inputs, even from a different scenario version, reuse the stored run (and so keep the same ids).
+- **Number ids.** Every number in a run is addressable as `<run id>:<doc>:<JSON pointer>` and `GET /explain/{id}` returns its formula,
+  inputs (themselves addressable), the assumptions it used (labelled ILLUSTRATIVE) and its share of the parent total. The explanation is
+  derived from the stored document and a registry keyed by (model, field); fields without a specific formula still resolve with a generic
+  "recorded value" explanation, so every number is explainable, and a test walks every number in the fixture's run.
+- **Slow work is separated.** Flip points and breakevens (about 4 s on OFBiz) run in a separate process after the response, debounced so only the
+  latest run of an analysis is computed. A first measurement showed why: in the same process that job held the interpreter lock and slowed
+  every concurrent request from about 100 ms to several seconds.
+- **Health colour bands** for the graph (good at 60 or more, fair at 40 or more, otherwise poor) are an illustrative display convention. Classes have
+  no health score of their own, so a class node shows 100 minus its hotspot score as a proxy.
